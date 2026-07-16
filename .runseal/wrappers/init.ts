@@ -42,7 +42,7 @@ for (
     "git",
     "deno",
     "cargo",
-    "gh",
+    "tea",
     "runseal",
     "sh",
   ]
@@ -50,7 +50,7 @@ for (
   await Check.tool(tool);
 }
 await negentropy.verify();
-io.print("ok: git, deno, cargo, gh, runseal, negentropy, sh");
+io.print("ok: git, deno, cargo, tea, runseal, negentropy, sh");
 
 io.print("==> checking repository entrypoints");
 for (
@@ -67,7 +67,7 @@ for (
     ".runseal/wrappers/guard.ts",
     ".runseal/wrappers/init.ts",
     ".runseal/wrappers/land.ts",
-    ".github/workflows/guard.yml",
+    ".forgejo/workflows/guard.yml",
   ]
 ) {
   await Check.path(root, entry);

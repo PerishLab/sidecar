@@ -14,18 +14,20 @@ on:
         default: ""
         type: string
 
-permissions:
-  actions: write
-  contents: write
-
 concurrency:
   group: sidecar-release-stable
   cancel-in-progress: false
 
+env:
+  RELEASE_CHANNEL: stable
+
 jobs:
   metadata:
-    runs-on: ubuntu-latest
+    runs-on: docker
+    container:
+      image: mirror.perish.lan/ci/deno
     env:
+      STABLE_VERSION_OVERRIDE: ${{ inputs.version_override }}
       R2_ACCESS_PROBE_NAME: release-stable
       RELEASE_CHANNEL: stable
       SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
@@ -33,7 +35,6 @@ jobs:
       SIDECAR_RELEASES_S3_BUCKET: ${{ secrets.SIDECAR_RELEASES_S3_BUCKET }}
       SIDECAR_RELEASES_S3_SK: ${{ secrets.SIDECAR_RELEASES_S3_SK }}
       SIDECAR_RELEASES_S3_URL: ${{ secrets.SIDECAR_RELEASES_S3_URL }}
-      STABLE_VERSION_OVERRIDE: ${{ inputs.version_override }}
     outputs:
       base_version: ${{ steps.stable.outputs.base_version }}
       release_version: ${{ steps.stable.outputs.release_version }}
@@ -44,25 +45,21 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - name: Validate R2 access
-        run: bash .github/scripts/release/r2/check.sh
+        run: bash .forgejo/scripts/release/r2/check.sh
 
       - name: Resolve stable metadata
         id: stable
-        run: python3 .github/scripts/release/metadata/stable.py
+        run: python3 .forgejo/scripts/release/metadata/stable.py
 
   verify:
     needs: metadata
-    runs-on: ubuntu-latest
+    runs-on: docker
+    container:
+      image: mirror.perish.lan/ci/deno
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - uses: Swatinem/rust-cache@v2
 
       - name: Format
         run: cargo fmt --all --check
@@ -78,7 +75,10 @@ jobs:
 
       - name: Install pinned negentropy
         run: |
-          curl -fsSL https://releases.negentropy.perish.uk/manage.sh | sh -s -- install --channel stable --version $(cat .runseal/negentropy.version) --bin-dir $HOME/.local/bin
+          set -eu
+          version=$(cat .runseal/negentropy.version)
+          curl -fsSL https://releases.negentropy.perish.uk/manage.sh -o "$RUNNER_TEMP/manage-negentropy.sh"
+          sh "$RUNNER_TEMP/manage-negentropy.sh" install --channel stable --version "$version" --bin-dir "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Negentropy
@@ -90,16 +90,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            archive: sidecar-x86_64-unknown-linux-gnu.tar.gz
-          - runner: macos-latest
+          - runner: macos
             target: aarch64-apple-darwin
             archive: sidecar-aarch64-apple-darwin.tar.gz
-          - runner: macos-latest
+          - runner: macos
             target: x86_64-apple-darwin
             archive: sidecar-x86_64-apple-darwin.tar.gz
-          - runner: windows-latest
+          - runner: windows
             target: x86_64-pc-windows-msvc
             archive: sidecar-x86_64-pc-windows-msvc.zip
     runs-on: ${{ matrix.runner }}
@@ -108,11 +105,8 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - uses: Swatinem/rust-cache@v2
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
 
       - name: Package release artifact
         if: runner.os != 'Windows'
@@ -120,7 +114,7 @@ jobs:
           RELEASE_CHANNEL: stable
           SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
           TARGET: ${{ matrix.target }}
-        run: sh .github/scripts/release/assets/package.sh "${{ needs.metadata.outputs.release_version }}"
+        run: sh .forgejo/scripts/release/assets/package.sh "${{ needs.metadata.outputs.release_version }}"
 
       - name: Package release artifact
         if: runner.os == 'Windows'
@@ -129,16 +123,18 @@ jobs:
           RELEASE_CHANNEL: stable
           SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
           TARGET: ${{ matrix.target }}
-        run: ./.github/scripts/release/assets/package.ps1 "${{ needs.metadata.outputs.release_version }}"
+        run: ./.forgejo/scripts/release/assets/package.ps1 "${{ needs.metadata.outputs.release_version }}"
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v3
         with:
           name: release-${{ matrix.target }}
           path: dist/${{ needs.metadata.outputs.release_version }}/${{ matrix.archive }}
 
   publish:
     needs: [metadata, build]
-    runs-on: ubuntu-latest
+    runs-on: docker
+    container:
+      image: mirror.perish.lan/ci/deno
     env:
       BASE_VERSION: ${{ needs.metadata.outputs.base_version }}
       RELEASE_CHANNEL: stable
@@ -150,70 +146,91 @@ jobs:
       SIDECAR_RELEASES_S3_SK: ${{ secrets.SIDECAR_RELEASES_S3_SK }}
       SIDECAR_RELEASES_S3_URL: ${{ secrets.SIDECAR_RELEASES_S3_URL }}
       STATE_SOURCE: ${{ needs.metadata.outputs.state_source }}
-    outputs:
-      metadata_url: ${{ steps.r2.outputs.metadata_url }}
-      version_metadata_url: ${{ steps.r2.outputs.version_metadata_url }}
-      version_prefix: ${{ steps.r2.outputs.version_prefix }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
 
-      - uses: actions/download-artifact@v8
+      - name: Package linux artifact
+        env:
+          RELEASE_CHANNEL: stable
+          TARGET: x86_64-unknown-linux-gnu
+        run: sh .forgejo/scripts/release/assets/package.sh "$RELEASE_VERSION"
+
+      - uses: actions/download-artifact@v3
         with:
           path: dist/${{ needs.metadata.outputs.release_version }}
-          merge-multiple: true
+
+      - name: Gather artifacts
+        run: |
+          set -eu
+          for dir in "$RELEASE_ROOT"/release-*; do
+            [ -d "$dir" ] || continue
+            mv "$dir"/* "$RELEASE_ROOT"/
+            rmdir "$dir"
+          done
+          ls -l "$RELEASE_ROOT"
 
       - name: Create checksums
-        run: sh .github/scripts/release/assets/checksums.sh "${RELEASE_VERSION}" "${RELEASE_ROOT}"
+        run: sh .forgejo/scripts/release/assets/checksums.sh "$RELEASE_VERSION" "$RELEASE_ROOT"
 
       - name: Accept release assets
-        run: sh .github/scripts/release/assets/verify.sh accept "${RELEASE_VERSION}" "${RELEASE_ROOT}"
+        run: sh .forgejo/scripts/release/assets/verify.sh accept "$RELEASE_VERSION" "$RELEASE_ROOT"
 
       - name: Verify release archives
-        run: sh .github/scripts/release/assets/verify.sh verify "${RELEASE_VERSION}" "${RELEASE_ROOT}"
+        run: sh .forgejo/scripts/release/assets/verify.sh verify "$RELEASE_VERSION" "$RELEASE_ROOT"
 
       - name: Publish to R2
         id: r2
-        run: bash .github/scripts/release/r2/publish.sh
+        run: bash .forgejo/scripts/release/r2/publish.sh
 
       - name: Verify R2 publish
         env:
           R2_METADATA_URL: ${{ steps.r2.outputs.metadata_url }}
-        run: bash .github/scripts/release/r2/verify.sh
+        run: bash .forgejo/scripts/release/r2/verify.sh
 
-      - name: Create and push git tag
+      - name: Tag release
         run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git rev-parse --verify --quiet "refs/tags/${RELEASE_VERSION}" >/dev/null; then
-            echo "[release-stable] tag ${RELEASE_VERSION} already exists locally; skipping create"
-          else
-            git tag -a "${RELEASE_VERSION}" -m "${RELEASE_VERSION}"
+          set -eu
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "tag $RELEASE_VERSION already on origin: skipping tag"
+            exit 0
           fi
-          git push origin "refs/tags/${RELEASE_VERSION}"
+          git config user.name "forgejo-actions"
+          git config user.email "actions@git.perish.top"
+          git tag -a "$RELEASE_VERSION" -m "$RELEASE_VERSION"
+          git push origin "refs/tags/$RELEASE_VERSION"
 
       - name: Publish summary
         env:
           R2_METADATA_URL: ${{ steps.r2.outputs.metadata_url }}
           R2_VERSION_METADATA_URL: ${{ steps.r2.outputs.version_metadata_url }}
           R2_VERSION_PREFIX: ${{ steps.r2.outputs.version_prefix }}
-        run: bash .github/scripts/release/r2/summary.sh
-
-      - name: Cleanup workflow artifacts
-        if: ${{ success() }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: bash .github/scripts/release/github/cleanup-artifacts.sh
+        run: bash .forgejo/scripts/release/r2/summary.sh
 
   smoke:
+    needs: [metadata, publish]
+    runs-on: docker
+    container:
+      image: mirror.perish.lan/ci/deno
+    env:
+      SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
+      SMOKE_LATEST: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Smoke stable install
+        run: sh .forgejo/scripts/release/smoke/smoke.sh "${{ needs.metadata.outputs.release_version }}" stable
+
+  smoke-native:
     needs: [metadata, publish]
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        runner: [macos, windows]
+    runs-on: ${{ matrix.runner }}
     env:
       SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
       SMOKE_LATEST: "1"
@@ -224,9 +241,9 @@ jobs:
 
       - name: Smoke stable install on Unix
         if: runner.os != 'Windows'
-        run: sh .github/scripts/release/smoke/smoke.sh "${{ needs.metadata.outputs.release_version }}" stable
+        run: sh .forgejo/scripts/release/smoke/smoke.sh "${{ needs.metadata.outputs.release_version }}" stable
 
       - name: Smoke stable install on Windows
         if: runner.os == 'Windows'
         shell: pwsh
-        run: ./.github/scripts/release/smoke/smoke.ps1 "${{ needs.metadata.outputs.release_version }}" stable
+        run: ./.forgejo/scripts/release/smoke/smoke.ps1 "${{ needs.metadata.outputs.release_version }}" stable

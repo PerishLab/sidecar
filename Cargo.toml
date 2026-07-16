@@ -8,7 +8,7 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/PerishCode/sidecar"
+repository = "https://git.perish.top/PerishFire/sidecar"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

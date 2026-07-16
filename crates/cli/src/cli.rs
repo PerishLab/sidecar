@@ -97,8 +97,8 @@ Exit shape:
   0 on success. 1 on config, diagnostic, lifecycle, inspect, or update failure.
 
 Project:
-  Source:  https://github.com/PerishCode/sidecar
-  Issues:  https://github.com/PerishCode/sidecar/issues
+  Source:  https://git.perish.top/PerishFire/sidecar
+  Issues:  https://git.perish.top/PerishFire/sidecar/issues
   Details: README.md for usage/schema; AGENTS.md for boundaries and PR workflow.
 "#
 }

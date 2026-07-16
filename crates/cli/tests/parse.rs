@@ -16,8 +16,8 @@ fn boundary() {
     );
     assert!(help.contains("README.md for usage/schema"));
     assert!(help.contains("AGENTS.md for boundaries and PR workflow"));
-    assert!(help.contains("Source:  https://github.com/PerishCode/sidecar"));
-    assert!(help.contains("https://github.com/PerishCode/sidecar/issues"));
+    assert!(help.contains("Source:  https://git.perish.top/PerishFire/sidecar"));
+    assert!(help.contains("https://git.perish.top/PerishFire/sidecar/issues"));
     assert!(help
         .contains("0 on success. 1 on config, diagnostic, lifecycle, inspect, or update failure."));
     assert!(!help.contains("%LOCALAPPDATA%"));

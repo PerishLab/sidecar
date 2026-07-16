@@ -119,7 +119,7 @@ flavor check --root . --config flavor.toml
 
 ## Release
 
-Stable releases are started from the `release-stable` workflow (`.github/workflows/release.yml`). The workflow resolves the Cargo version against R2 metadata, runs verification, publishes artifacts and managers to R2, then creates the git tag after publish succeeds.
+Stable releases are started from the `release-stable` workflow (`.forgejo/workflows/release-stable.yml`). The workflow resolves the Cargo version against R2 metadata, runs verification, publishes artifacts and managers to R2, then creates the git tag after publish succeeds.
 
 Beta releases are started from `release-beta`. The workflow advances `vX.Y.Z-beta.N` from R2 beta metadata unless a version override is provided.
 
@@ -234,4 +234,4 @@ bootstrap helpers should wait until real projects converge on shared needs.
 
 Report parser gaps, diagnostics noise, install issues, and missing capabilities at:
 
-https://github.com/PerishCode/sidecar/issues
+https://git.perish.top/PerishFire/sidecar/issues

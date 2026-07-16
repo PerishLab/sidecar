@@ -2,19 +2,50 @@ import { cli, flags } from "@perish/harness/cli";
 import { bin } from "@perish/harness/cmd";
 import { io } from "@perish/harness/io";
 import { doc } from "@perish/harness/json";
+import { runseal } from "@perish/harness/runseal";
 
 type Options = {
   base: string;
   body: string;
-  dry: boolean;
+  repo: string;
+  dryRun: boolean;
+  deleteBranch: boolean;
   watch: boolean;
 };
 
-const budget = 240_000;
-const early = 5_000;
-const late = 10_000;
-const fatal = ["failure", "cancelled", "timed_out", "action_required", "stale"];
-const benign = ["success", "skipped", "neutral"];
+function usage(): void {
+  io.print("Usage: runseal :land [options]");
+  io.print("");
+  io.print("Land the current clean topic branch on Forgejo.");
+  io.print("The branch is pushed, a PR is created or reused, guard is awaited,");
+  io.print("the PR is squash-merged, main is synced, and the topic branch is deleted.");
+  io.print("");
+  io.print("Options:");
+  io.print("  --base <branch>    base branch (default: main)");
+  io.print("  --body <body>      pull request body override");
+  io.print("  --repo <owner/name> Forgejo repository (default: derived from origin)");
+  io.print("  --watch=false      stop once the PR exists; print the follow-up commands");
+  io.print("  --dry-run          print planned actions without changing git or Forgejo");
+  io.print("  --no-delete        keep the topic branch after merge");
+}
+
+function parse(args: string[]): Options & { help: boolean } {
+  const parsed = cli.parse(args, {
+    string: ["base", "body", "repo"],
+    boolean: ["dry-run", "no-delete", "watch", "help", "h"],
+    default: { watch: true },
+  });
+  flags(parsed).positionals("land", { allowHelp: true });
+  return {
+    base: flags(parsed).string("base", "main"),
+    body: flags(parsed).string("body"),
+    repo: flags(parsed).string("repo"),
+    dryRun: flags(parsed).boolean("dry-run"),
+    deleteBranch: !flags(parsed).boolean("no-delete"),
+    watch: parsed.watch === true,
+    help: flags(parsed).help(),
+  };
+}
 
 const options = parse([...Deno.args]);
 if (options.help) {
@@ -23,71 +54,37 @@ if (options.help) {
 }
 
 await bin("git").run(["--version"], { stdout: "null" });
-await bin("gh").run(["--version"], { stdout: "null" });
 
 const branch = await current();
-if (options.dry) {
+const repo = options.repo === "" ? await target() : options.repo;
+if (options.dryRun) {
   await landable(options.base, branch, { fetch: false });
-  plan(options, branch);
+  plan(options, repo, branch);
   Deno.exit(0);
 }
 
 await landable(options.base, branch, { fetch: true });
 await bin("git").run(["push", "-u", "origin", branch]);
-const sha = await bin("git").text(["rev-parse", "HEAD"]);
 
-const url = await pull(options, branch);
+const pr = await pull(options, repo, branch);
+const number = doc(pr).get(".number");
+const url = doc(pr).get(".html_url");
 io.print(url);
 if (!options.watch) {
   io.print("land: PR is up; guard not awaited (--watch=false)");
+  io.print("finish later with:");
+  io.print(`  runseal @tool forgejo pr guard --repo ${repo} --number ${number}`);
+  io.print(
+    `  runseal @tool forgejo pr merge --repo ${repo} --number ${number} --head <guarded-sha> --delete-branch ${options.deleteBranch}`,
+  );
   Deno.exit(0);
 }
-await guarded(sha);
-await bin("gh").run([
-  "pr",
-  "merge",
-  branch,
-  "--squash",
-  "--match-head-commit",
-  sha,
-  "--delete-branch",
-]);
+const sha = await guarded(repo, number);
+await merge(repo, number, sha, options.deleteBranch);
 await bin("git").run(["checkout", options.base]);
 await bin("git").run(["pull", "--ff-only", "origin", options.base]);
-if (await ok(["rev-parse", "--verify", `refs/heads/${branch}`])) {
+if (options.deleteBranch && await ok(["rev-parse", "--verify", `refs/heads/${branch}`])) {
   await bin("git").run(["branch", "-D", branch]);
-}
-
-function usage(): void {
-  io.print("Usage: runseal :land [options]");
-  io.print("");
-  io.print("Land the current clean topic branch on GitHub.");
-  io.print("The branch is pushed, a PR is created or reused, the checks on the");
-  io.print("exact pushed head commit are awaited, the PR is squash-merged against");
-  io.print("that same commit, main is synced, and the topic branch is deleted.");
-  io.print("");
-  io.print("  --watch=false      stop once the PR exists; skip the guard wait and merge");
-  io.print("");
-  io.print("Options:");
-  io.print("  --base <branch>    base branch (default: main)");
-  io.print("  --body <body>      pull request body override");
-  io.print("  --dry-run          print planned actions without changing git or GitHub");
-}
-
-function parse(args: string[]): Options & { help: boolean } {
-  const parsed = cli.parse(args, {
-    string: ["base", "body"],
-    boolean: ["dry-run", "watch", "help", "h"],
-    default: { watch: true },
-  });
-  flags(parsed).positionals("land", { allowHelp: true });
-  return {
-    base: flags(parsed).string("base", "main"),
-    body: flags(parsed).string("body"),
-    dry: flags(parsed).boolean("dry-run"),
-    watch: parsed.watch === true,
-    help: flags(parsed).help(),
-  };
 }
 
 async function current(): Promise<string> {
@@ -134,34 +131,41 @@ async function ok(args: string[]): Promise<boolean> {
   }) === 0;
 }
 
-async function pull(options: Options, branch: string): Promise<string> {
-  const existing = await bin("gh").text([
+async function pull(options: Options, repo: string, branch: string): Promise<string> {
+  const existing = await runseal.text([
+    "@tool",
+    "forgejo",
     "pr",
-    "list",
+    "find",
+    "--repo",
+    repo,
     "--head",
     branch,
     "--base",
     options.base,
-    "--state",
-    "open",
-    "--json",
-    "url",
   ]);
   if (!doc(existing).empty()) {
-    return doc(existing).get("[0].url");
+    return existing;
   }
-  return await bin("gh").text([
+
+  const args = [
+    "@tool",
+    "forgejo",
     "pr",
     "create",
+    "--repo",
+    repo,
     "--base",
     options.base,
     "--head",
     branch,
     "--title",
     await title(options.base),
-    "--body",
-    options.body,
-  ]);
+  ];
+  if (options.body !== "") {
+    args.push("--body", options.body);
+  }
+  return await runseal.text(args);
 }
 
 async function title(base: string): Promise<string> {
@@ -175,56 +179,62 @@ async function title(base: string): Promise<string> {
   return first ?? "land branch";
 }
 
-async function guarded(sha: string): Promise<void> {
-  const start = Date.now();
-  let registered = false;
-  while (Date.now() - start < budget) {
-    const payload = await bin("gh").text([
-      "api",
-      `repos/{owner}/{repo}/commits/${sha}/check-runs`,
-    ]);
-    const runs = doc(payload).get(".check_runs");
-    const total = doc(runs).len();
-    if (total > 0) {
-      registered = true;
-      const broken = doc(doc(runs).filter("conclusion", fatal)).len();
-      if (broken > 0) {
-        io.fail(`land: checks failed on ${sha}`);
-      }
-      const finished = doc(doc(runs).filter("status", ["completed"])).len();
-      if (finished === total) {
-        const passed = doc(doc(runs).filter("conclusion", benign)).len();
-        if (passed !== total) {
-          io.fail(`land: checks finished with unexpected conclusions on ${sha}`);
-        }
-        io.print(`checks passed on ${sha}`);
-        return;
-      }
-    }
-    await delay(registered ? late : early);
+async function guarded(repo: string, number: string): Promise<string> {
+  const run = await runseal.text([
+    "@tool",
+    "forgejo",
+    "pr",
+    "guard",
+    "--repo",
+    repo,
+    "--number",
+    number,
+  ]);
+  return doc(run).get(".commit_sha");
+}
+
+async function merge(repo: string, number: string, sha: string, remove: boolean): Promise<void> {
+  await runseal.run([
+    "@tool",
+    "forgejo",
+    "pr",
+    "merge",
+    "--repo",
+    repo,
+    "--number",
+    number,
+    "--head",
+    sha,
+    "--delete-branch",
+    String(remove),
+  ]);
+}
+
+async function target(): Promise<string> {
+  const origin = (await bin("git").text(["remote", "get-url", "origin"])).replace(/\.git$/, "");
+  const found = origin.match(/[:/]([^/:]+)\/([^/]+)$/);
+  if (found === null) {
+    return io.fail(`land: cannot derive Forgejo owner/name from origin: ${origin}`);
   }
-  io.fail(`land: timed out waiting for checks on ${sha}`);
+  return `${found[1]}/${found[2]}`;
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function plan(options: Options, branch: string): void {
-  const creation = options.body === "" ? "--body ''" : "--body <given>";
+function plan(options: Options, repo: string, branch: string): void {
+  const creation = options.body === "" ? "--title <commit>" : "--title <commit> --body <given>";
   const steps = [
     "[dry-run] would run:",
     `  git fetch origin ${options.base}`,
     `  verify ${branch} is clean, not ${options.base}, contains origin/${options.base}, ahead >= 1`,
     `  git push -u origin ${branch}`,
-    "  git rev-parse HEAD  # record exact head sha",
-    `  gh pr list --head ${branch} --base ${options.base} --state open --json url`,
-    `  gh pr create --base ${options.base} --head ${branch} --title <commit> ${creation}  # if missing`,
-    "  gh api repos/{owner}/{repo}/commits/<sha>/check-runs  # poll until all succeed",
-    `  gh pr merge ${branch} --squash --match-head-commit <sha> --delete-branch`,
+    `  runseal @tool forgejo pr find --repo ${repo} --head ${branch} --base ${options.base}`,
+    `  runseal @tool forgejo pr create --repo ${repo} --base ${options.base} --head ${branch} ${creation}  # if missing`,
+    `  runseal @tool forgejo pr guard --repo ${repo} --number <n>`,
+    `  runseal @tool forgejo pr merge --repo ${repo} --number <n> --head <guarded-sha> --delete-branch ${options.deleteBranch}`,
     `  git checkout ${options.base}`,
     `  git pull --ff-only origin ${options.base}`,
-    `  git branch -D ${branch}  # if still present locally`,
   ];
+  if (options.deleteBranch) {
+    steps.push(`  git branch -D ${branch}  # if still present locally`);
+  }
   io.print(steps.join("\n"));
 }
