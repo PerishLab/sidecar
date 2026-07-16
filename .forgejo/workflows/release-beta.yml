@@ -14,10 +14,6 @@ on:
         default: ""
         type: string
 
-concurrency:
-  group: sidecar-release-beta
-  cancel-in-progress: false
-
 env:
   RELEASE_CHANNEL: beta
 
