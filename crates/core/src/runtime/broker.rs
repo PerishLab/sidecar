@@ -1,5 +1,5 @@
-use crate::percent;
 use crate::stamp;
+use crate::stamp::percent;
 use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{SocketAddr, TcpStream};

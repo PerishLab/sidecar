@@ -1,3 +1,4 @@
+mod args;
 mod broker;
 mod cli;
 mod commands;

@@ -2,7 +2,6 @@ pub mod config;
 pub mod diagnostics;
 pub mod inspect;
 pub mod paths;
-mod percent;
 pub mod plan;
 pub mod runtime;
 pub mod socket;
