@@ -29,7 +29,6 @@ await init({
     "runseal.toml",
     ".runseal/deno.json",
     ".runseal/deno.lock",
-    ".runseal/negentropy.version",
     ".runseal/wrappers/guard.ts",
     ".runseal/wrappers/init.ts",
     ".runseal/wrappers/land.ts",
