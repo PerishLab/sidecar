@@ -1,11 +1,12 @@
-use crate::args::{Args, parse};
+use crate::args::Global;
+use crate::help::help;
 use crate::update;
 use crate::{broker, commands, output};
+use clap::{Parser, Subcommand};
 use sidecar_core::Severity;
 use std::time::Duration;
 
 pub(crate) mod default {
-    pub(crate) const TIMEOUT: u64 = 5;
     pub(crate) const MANIFEST: &str = "sidecar.toml";
 }
 
@@ -33,103 +34,115 @@ pub fn channel() -> &'static str {
     option_env!("SIDECAR_BUILD_CHANNEL").unwrap_or("dev")
 }
 
-pub fn help() -> &'static str {
-    r#"sidecar
+#[derive(Parser)]
+#[command(
+    name = "sidecar",
+    disable_help_flag = true,
+    disable_version_flag = true,
+    disable_help_subcommand = true
+)]
+pub(crate) struct Cli {
+    #[command(flatten)]
+    pub(crate) global: Global,
+    #[command(subcommand)]
+    pub(crate) command: Option<Verb>,
+}
 
-Product-neutral sidecar lifecycle and inspect IPC manager.
-It owns manifest-closed lifecycle, appends stamp identity, discovers/stops
-targets, and sends one-shot inspect events; consumers own product semantics.
+#[derive(Subcommand)]
+pub(crate) enum Verb {
+    Doctor,
+    Plan,
+    Inspect {
+        first: Option<String>,
+        event: Option<String>,
+        payload: Option<String>,
+    },
+    Start {
+        sidecar: Option<String>,
+    },
+    Restart {
+        sidecar: Option<String>,
+    },
+    Stop {
+        sidecar: Option<String>,
+    },
+    Status,
+    List,
+    Reset,
+    Update,
+    Runtime {
+        #[command(subcommand)]
+        cmd: Runtime,
+    },
+    Version,
+    Help,
+}
 
-Commands:
-  doctor   [--config <path>] [--format text|json]
-  plan     [--config <path>] [--format text|json]
-  inspect  config [--config <path>] [--format text|json]
-  inspect  <sidecar> <event> [<json-payload>] [--config <path>] [--format text|json] [--inspect-timeout <seconds>]
-  start    [--config <path>] [<sidecar>]
-  restart  [--config <path>] [<sidecar>]
-  stop     [--config <path>] [--force] [<sidecar>]
-  status   [--config <path>] [--format text|json]
-  list     [--config <path>] [--format text|json]
-  reset    [--config <path>] [--all] [--force]
-  update
-  help
-  version
-
-Global flags:
-  --config <path>       explicit manifest path; when omitted, sidecar walks
-                        ancestors of cwd for sidecar.toml
-  -p, --project <name>  override [project].namespace, like docker compose -p
-  --data-home <path>    override global state/update-cache root
-  --format text|json    output format where the command supports it
-  --inspect-timeout <s> inspect round-trip timeout in seconds (default: 5)
-  --force               force-kill sidecar-owned pids after graceful stop waits
-
-Model:
-  Manifest: [project], optional [app], repeated [[sidecars]], ready/env/inspect
-  fields, and optional [[inspect.endpoints]]. See README.md for the schema.
-  Lifecycle: command/cwd/args/env/stamps/ready/inspect/stop/reset close in manifest.
-  Stamps: --sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>;e=<endpoint>;
-  values are percent-encoded; the stamp is the only sidecar launch metadata.
-  Inspect: one SidecarRuntime event frame over unix:// sockets; TCP is fallback.
-  State: <data-home>/state plus <data-home>/projects/<namespace>; see AGENTS.md.
-
-Safety:
-  stop/reset are signal-first and observe sidecar-owned pids; add --force to
-  kill after graceful waits. reset removes project state; add --all to also
-  remove global state.
-  update delegates to the released manager. Dev builds cannot self-update.
-
-Exit shape:
-  0 on success. 1 on config, diagnostic, lifecycle, inspect, or update failure.
-
-Project:
-  Source:  https://git.perish.top/PerishFire/sidecar
-  Issues:  https://git.perish.top/PerishFire/sidecar/issues
-  Details: README.md for usage/schema; AGENTS.md for boundaries and PR workflow.
-"#
+#[derive(Subcommand)]
+pub(crate) enum Runtime {
+    Serve {
+        project: String,
+        namespace: String,
+        #[arg(long = "sidecar-broker")]
+        broker: Option<String>,
+    },
 }
 
 pub fn run(args: Vec<String>) -> Result<(), String> {
-    let parsed = parse(args)?;
-    if parsed.command.is_empty() {
+    match args.get(1).map(String::as_str) {
+        Some("--help" | "-h") => {
+            println!("{}", help());
+            return Ok(());
+        }
+        Some("--version" | "-V") => {
+            println!("sidecar {} ({})", version(), channel());
+            return Ok(());
+        }
+        _ => {}
+    }
+
+    let cli = Cli::try_parse_from(args).map_err(|error| error.to_string())?;
+    let Some(verb) = cli.command else {
         print!("{help}", help = help());
         println!();
         return Ok(());
-    }
+    };
+    let global = &cli.global;
 
-    if let Some(home) = &parsed.home {
+    if let Some(home) = &global.home {
         unsafe { std::env::set_var("SIDECAR_DATA_HOME", home) };
     }
-    if let Some(project) = &parsed.project {
+    if let Some(project) = &global.project {
         unsafe { std::env::set_var("SIDECAR_PROJECT", project) };
     }
 
-    let cmd = parsed.command[0].as_str();
     if !matches!(
-        cmd,
-        "help" | "--help" | "-h" | "version" | "--version" | "-V" | "update" | "runtime"
+        verb,
+        Verb::Help | Verb::Version | Verb::Update | Verb::Runtime { .. }
     ) {
         update::notice(version(), channel());
     }
-    match cmd {
-        "help" | "--help" | "-h" => {
+
+    match verb {
+        Verb::Help => {
             println!("{}", help());
             Ok(())
         }
-        "version" | "--version" | "-V" => {
+        Verb::Version => {
             println!("sidecar {} ({})", version(), channel());
             Ok(())
         }
-        "update" => {
-            parsed.exact(1, "update")?;
-            update::run(channel())
+        Verb::Update => update::run(channel()),
+        Verb::Runtime { cmd } => {
+            let Runtime::Serve {
+                project, namespace, ..
+            } = cmd;
+            broker::serve(&project, &namespace)
         }
-        "runtime" => runtime(&parsed),
-        "doctor" => {
-            parsed.exact(1, "doctor")?;
-            let state = parsed.state()?;
+        Verb::Doctor => {
+            let state = global.state()?;
             let diagnostics = state.diagnostics();
-            output::diagnostics(&diagnostics, parsed.format)?;
+            output::diagnostics(&diagnostics, global.format)?;
             if diagnostics
                 .iter()
                 .any(|diagnostic| diagnostic.severity == Severity::Error)
@@ -139,82 +152,59 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
                 Ok(())
             }
         }
-        "plan" => {
-            parsed.exact(1, "plan")?;
-            let state = parsed.state()?;
-            output::plan(&state.plan(), parsed.format)
+        Verb::Plan => {
+            let state = global.state()?;
+            output::plan(&state.plan(), global.format)
         }
-        "inspect" => inspect(&parsed),
-        "start" | "stop" | "restart" => {
-            let target = parsed.target(cmd)?;
-            let session = parsed.session()?;
-            match cmd {
-                "start" => session.start(target),
-                "stop" => session.stop(target, parsed.force),
-                "restart" => session.restart(target, parsed.force),
-                _ => unreachable!(),
-            }
-        }
-        "status" => {
-            parsed.exact(1, "status")?;
-            parsed.session()?.status(parsed.format)
-        }
-        "list" => {
-            parsed.exact(1, "list")?;
-            parsed.session()?.list(parsed.format)
-        }
-        "reset" => {
-            parsed.exact(1, "reset")?;
-            parsed.session()?.reset(parsed.all, parsed.force)
-        }
-        _ => Err(format!(
-            "unknown command: {}; run `sidecar help`",
-            parsed.command.join(" ")
-        )),
+        Verb::Inspect {
+            first,
+            event,
+            payload,
+        } => inspect(global, first, event, payload),
+        Verb::Start { sidecar } => global.session()?.start(sidecar.as_deref()),
+        Verb::Stop { sidecar } => global.session()?.stop(sidecar.as_deref(), global.force),
+        Verb::Restart { sidecar } => global.session()?.restart(sidecar.as_deref(), global.force),
+        Verb::Status => global.session()?.status(global.format),
+        Verb::List => global.session()?.list(global.format),
+        Verb::Reset => global.session()?.reset(global.all, global.force),
     }
 }
 
-fn runtime(parsed: &Args) -> Result<(), String> {
-    match parsed.command.as_slice() {
-        [_, verb, project, namespace, ..] if verb == "serve" => broker::serve(project, namespace),
-        [_, verb, ..] if verb == "serve" => {
-            Err("runtime serve requires <project> <namespace>".to_string())
+fn inspect(
+    global: &Global,
+    first: Option<String>,
+    event: Option<String>,
+    payload: Option<String>,
+) -> Result<(), String> {
+    match (first.as_deref(), event) {
+        (None, _) => Err("inspect requires `config` or `<sidecar> <event> [payload]`".to_string()),
+        (Some("config"), None) => {
+            let state = global.state()?;
+            output::plan(&state.plan(), global.format)
         }
-        _ => Err(
-            "unknown runtime command; expected `runtime serve <project> <namespace>`".to_string(),
-        ),
-    }
-}
-
-fn inspect(parsed: &Args) -> Result<(), String> {
-    match parsed.command.len() {
-        1 => Err("inspect requires `config` or `<sidecar> <event> [payload]`".to_string()),
-        _ if parsed.command[1] == "config" => {
-            parsed.exact(2, "inspect config")?;
-            let state = parsed.state()?;
-            output::plan(&state.plan(), parsed.format)
+        (Some("config"), Some(extra)) => {
+            Err(format!("unsupported inspect config arguments: {extra}"))
         }
-        len if len < 3 => Err("inspect <sidecar> <event> [payload] — event is required".into()),
-        len if len > 4 => Err(format!(
-            "unsupported inspect arguments: {}",
-            parsed.command[4..].join(" ")
-        )),
-        _ => {
-            let session = parsed.session()?;
+        (Some(_), None) => {
+            Err("inspect <sidecar> <event> [payload] — event is required".to_string())
+        }
+        (Some(sidecar), Some(event)) => {
+            let session = global.session()?;
             let probe = commands::Probe {
-                sidecar: &parsed.command[1],
-                event: &parsed.command[2],
-                payload: parsed.command.get(3).map(String::as_str),
-                timeout: Duration::from_secs(parsed.timeout),
+                sidecar,
+                event: &event,
+                payload: payload.as_deref(),
+                timeout: Duration::from_secs(global.timeout),
             };
-            session.inspect(&probe, parsed.format)
+            session.inspect(&probe, global.format)
         }
     }
 }
 
 #[doc(hidden)]
 pub mod __test {
-    use super::Format;
+    use super::{Cli, Format, Runtime, Verb};
+    use clap::Parser;
 
     #[derive(Debug, Eq, PartialEq)]
     pub struct Summary {
@@ -228,21 +218,75 @@ pub mod __test {
         pub force: bool,
     }
 
+    fn reconstruct(verb: Option<&Verb>) -> Vec<String> {
+        let Some(verb) = verb else {
+            return Vec::new();
+        };
+        match verb {
+            Verb::Doctor => vec!["doctor".to_string()],
+            Verb::Plan => vec!["plan".to_string()],
+            Verb::Inspect {
+                first,
+                event,
+                payload,
+            } => {
+                let mut command = vec!["inspect".to_string()];
+                command.extend(first.clone());
+                command.extend(event.clone());
+                command.extend(payload.clone());
+                command
+            }
+            Verb::Start { sidecar } => once("start", sidecar),
+            Verb::Restart { sidecar } => once("restart", sidecar),
+            Verb::Stop { sidecar } => once("stop", sidecar),
+            Verb::Status => vec!["status".to_string()],
+            Verb::List => vec!["list".to_string()],
+            Verb::Reset => vec!["reset".to_string()],
+            Verb::Update => vec!["update".to_string()],
+            Verb::Runtime { cmd } => {
+                let Runtime::Serve {
+                    project,
+                    namespace,
+                    broker,
+                } = cmd;
+                let mut command = vec![
+                    "runtime".to_string(),
+                    "serve".to_string(),
+                    project.clone(),
+                    namespace.clone(),
+                ];
+                if let Some(broker) = broker {
+                    command.push(format!("--sidecar-broker={broker}"));
+                }
+                command
+            }
+            Verb::Version => vec!["version".to_string()],
+            Verb::Help => vec!["help".to_string()],
+        }
+    }
+
+    fn once(verb: &str, sidecar: &Option<String>) -> Vec<String> {
+        let mut command = vec![verb.to_string()];
+        command.extend(sidecar.clone());
+        command
+    }
+
     pub fn parse(args: Vec<&str>) -> Result<Summary, String> {
-        let parsed = super::parse(args.into_iter().map(String::from).collect())?;
-        let format = match parsed.format {
+        let cli = Cli::try_parse_from(args).map_err(|error| error.to_string())?;
+        let global = &cli.global;
+        let format = match global.format {
             Format::Text => "text",
             Format::Json => "json",
         };
         Ok(Summary {
-            command: parsed.command,
-            config: parsed.config,
+            command: reconstruct(cli.command.as_ref()),
+            config: global.config.clone(),
             format,
-            home: parsed.home,
-            project: parsed.project,
-            timeout: parsed.timeout,
-            all: parsed.all,
-            force: parsed.force,
+            home: global.home.clone(),
+            project: global.project.clone(),
+            timeout: global.timeout,
+            all: global.all,
+            force: global.force,
         })
     }
 

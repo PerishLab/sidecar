@@ -45,8 +45,8 @@ fn global() {
 
 #[test]
 fn version() {
-    let parsed = cli::parse(vec!["sidecar", "--version"]).unwrap();
-    assert_eq!(parsed.command, vec!["--version"]);
+    let parsed = cli::parse(vec!["sidecar", "version"]).unwrap();
+    assert_eq!(parsed.command, vec!["version"]);
 }
 
 #[test]

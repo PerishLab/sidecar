@@ -1,42 +1,28 @@
 use crate::cli::Format;
 use crate::commands;
+use clap::Args;
 use sidecar_core::{Paths, State};
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct Args {
-    pub(crate) command: Vec<String>,
+#[derive(Args, Clone, Debug)]
+pub(crate) struct Global {
+    #[arg(long, global = true)]
     pub(crate) config: Option<String>,
-    pub(crate) format: Format,
-    pub(crate) home: Option<String>,
+    #[arg(short = 'p', long, global = true)]
     pub(crate) project: Option<String>,
+    #[arg(long = "data-home", global = true)]
+    pub(crate) home: Option<String>,
+    #[arg(long, global = true, default_value = "text", value_parser = Format::parse)]
+    pub(crate) format: Format,
+    #[arg(long = "inspect-timeout", global = true, default_value = "5", value_parser = seconds)]
     pub(crate) timeout: u64,
+    #[arg(long, global = true)]
     pub(crate) all: bool,
+    #[arg(long, global = true)]
     pub(crate) force: bool,
 }
 
-impl Args {
-    pub(crate) fn target(&self, command: &str) -> Result<Option<&str>, String> {
-        match self.command.len() {
-            1 => Ok(None),
-            2 => Ok(Some(self.command[1].as_str())),
-            _ => Err(format!(
-                "unsupported {command} arguments: {}",
-                self.command[2..].join(" ")
-            )),
-        }
-    }
-
-    pub(crate) fn exact(&self, expected: usize, command: &str) -> Result<(), String> {
-        if self.command.len() > expected {
-            return Err(format!(
-                "unsupported {command} arguments: {}",
-                self.command[expected..].join(" ")
-            ));
-        }
-        Ok(())
-    }
-
+impl Global {
     pub(crate) fn state(&self) -> Result<State, String> {
         let (config, discovered) = locate(self.config.as_deref())?;
         if discovered {
@@ -100,103 +86,12 @@ pub(crate) fn locate(explicit: Option<&str>) -> Result<(PathBuf, bool), String> 
     ))
 }
 
-pub(crate) fn parse(args: Vec<String>) -> Result<Args, String> {
-    let mut command = Vec::new();
-    let mut config = None;
-    let mut format = Format::Text;
-    let mut home = None;
-    let mut project = None;
-    let mut timeout = crate::cli::default::TIMEOUT;
-    let mut all = false;
-    let mut force = false;
-    let mut args = args.into_iter();
-    let _binary = args.next();
-
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--config" => {
-                config = Some(
-                    args.next()
-                        .ok_or_else(|| "--config requires a value".to_string())?,
-                );
-            }
-            "--format" => {
-                let value = args
-                    .next()
-                    .ok_or_else(|| "--format requires a value".to_string())?;
-                format = Format::parse(&value)?;
-            }
-            "--data-home" => {
-                home = Some(
-                    args.next()
-                        .ok_or_else(|| "--data-home requires a value".to_string())?,
-                );
-            }
-            "-p" | "--project" => {
-                project = Some(
-                    args.next()
-                        .ok_or_else(|| "--project requires a value".to_string())?,
-                );
-            }
-            "--all" => {
-                all = true;
-            }
-            "--force" => {
-                force = true;
-            }
-            "--inspect-timeout" => {
-                let value = args
-                    .next()
-                    .ok_or_else(|| "--inspect-timeout requires a value".to_string())?;
-                timeout = seconds("--inspect-timeout", &value)?;
-            }
-            value if value.starts_with("--config=") => {
-                config = Some(value.trim_start_matches("--config=").to_string());
-            }
-            value if value.starts_with("--format=") => {
-                format = Format::parse(value.trim_start_matches("--format="))?;
-            }
-            value if value.starts_with("--data-home=") => {
-                home = Some(value.trim_start_matches("--data-home=").to_string());
-            }
-            value if value.starts_with("--project=") => {
-                project = Some(value.trim_start_matches("--project=").to_string());
-            }
-            value if value.starts_with("--inspect-timeout=") => {
-                timeout = seconds(
-                    "--inspect-timeout",
-                    value.trim_start_matches("--inspect-timeout="),
-                )?;
-            }
-            value
-                if value.starts_with('-')
-                    && !matches!(value, "-h" | "--help" | "-V" | "--version")
-                    && !value.starts_with("--sidecar-broker") =>
-            {
-                return Err(format!("unknown option: {value}"));
-            }
-            value => command.push(value.to_string()),
-        }
-    }
-
-    Ok(Args {
-        command,
-        config,
-        format,
-        home,
-        project,
-        timeout,
-        all,
-        force,
-    })
-}
-
-fn seconds(option: &str, value: &str) -> Result<u64, String> {
+fn seconds(value: &str) -> Result<u64, String> {
     let parsed = value
         .parse::<u64>()
-        .map_err(|_| format!("{option} requires a positive integer value"))?;
+        .map_err(|_| "--inspect-timeout requires a positive integer value".to_string())?;
     if parsed == 0 {
-        return Err(format!("{option} requires a positive integer value"));
+        return Err("--inspect-timeout requires a positive integer value".to_string());
     }
     Ok(parsed)
 }

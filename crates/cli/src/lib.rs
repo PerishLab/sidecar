@@ -2,6 +2,7 @@ mod args;
 mod broker;
 mod cli;
 mod commands;
+mod help;
 mod output;
 mod update;
 
@@ -12,7 +13,8 @@ pub mod test {
     pub use crate::update::__test as update;
 }
 
-pub use cli::{channel, help, version};
+pub use cli::{channel, version};
+pub use help::help;
 
 pub fn run(args: Vec<String>) -> Result<(), String> {
     cli::run(args)
