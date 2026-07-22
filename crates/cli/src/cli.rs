@@ -27,11 +27,11 @@ impl Format {
 }
 
 pub fn version() -> &'static str {
-    option_env!("SIDECAR_BUILD_VERSION").unwrap_or(concat!("v", env!("CARGO_PKG_VERSION")))
+    plumb_lib::version!("SIDECAR")
 }
 
 pub fn channel() -> &'static str {
-    option_env!("SIDECAR_BUILD_CHANNEL").unwrap_or("dev")
+    plumb_lib::channel!("SIDECAR")
 }
 
 #[derive(Parser)]
