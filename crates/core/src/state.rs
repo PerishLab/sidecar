@@ -52,10 +52,10 @@ impl State {
             require(&mut diagnostics, "app.name", &app.name);
             require(&mut diagnostics, "app.command", &app.command);
             require(&mut diagnostics, "app.mode", &app.mode);
-            if let Some(socket) = &app.socket {
-                if let Err(error) = socket::Endpoint::parse(socket) {
-                    diagnostics.push(Diagnostic::error("app.inspect_socket", error.to_string()));
-                }
+            if let Some(socket) = &app.socket
+                && let Err(error) = socket::Endpoint::parse(socket)
+            {
+                diagnostics.push(Diagnostic::error("app.inspect_socket", error.to_string()));
             }
             if let Some(ready) = &app.ready {
                 require(&mut diagnostics, "app.ready.role", &ready.role);
@@ -84,13 +84,13 @@ impl State {
                     format!("duplicate sidecar name `{}`", sidecar.name),
                 ));
             }
-            if let Some(socket) = &sidecar.socket {
-                if let Err(error) = socket::Endpoint::parse(socket) {
-                    diagnostics.push(Diagnostic::error(
-                        format!("{path}.inspect_socket"),
-                        error.to_string(),
-                    ));
-                }
+            if let Some(socket) = &sidecar.socket
+                && let Err(error) = socket::Endpoint::parse(socket)
+            {
+                diagnostics.push(Diagnostic::error(
+                    format!("{path}.inspect_socket"),
+                    error.to_string(),
+                ));
             }
             if let Some(ready) = &sidecar.ready {
                 require(&mut diagnostics, format!("{path}.ready.role"), &ready.role);

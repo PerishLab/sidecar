@@ -1,5 +1,5 @@
-use sidecar_core::stamp;
 use sidecar_core::Stamp;
+use sidecar_core::stamp;
 
 #[test]
 fn canonical() {

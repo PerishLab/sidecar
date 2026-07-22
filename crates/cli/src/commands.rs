@@ -9,7 +9,7 @@ use ready::Chain;
 use runtime::{Broker, Launch};
 use serde_json::{Map, Value};
 use sidecar_core::plan::{Plan, Target};
-use sidecar_core::{inspect, process, socket, Paths, State};
+use sidecar_core::{Paths, State, inspect, process, socket};
 use std::fs::{self, OpenOptions};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};

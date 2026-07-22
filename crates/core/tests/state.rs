@@ -19,9 +19,11 @@ fn duplicates() {
     );
 
     let diagnostics = state.diagnostics();
-    assert!(diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.message.contains("duplicate sidecar name")));
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("duplicate sidecar name"))
+    );
 }
 
 #[test]
@@ -37,9 +39,11 @@ fn optional() {
         "#,
     );
     let diagnostics = state.diagnostics();
-    assert!(!diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.path == "sidecars[0].inspect_socket"));
+    assert!(
+        !diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.path == "sidecars[0].inspect_socket")
+    );
 }
 
 #[test]
@@ -57,9 +61,11 @@ fn solo() {
     );
 
     let diagnostics = state.diagnostics();
-    assert!(!diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.path == "app"));
+    assert!(
+        !diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.path == "app")
+    );
 }
 
 #[test]
@@ -112,9 +118,11 @@ fn separated() {
     );
 
     let diagnostics = state.diagnostics();
-    assert!(!diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.message.contains("--sidecar-stamp")));
+    assert!(
+        !diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("--sidecar-stamp"))
+    );
 }
 
 #[test]

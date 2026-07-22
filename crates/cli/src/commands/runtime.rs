@@ -1,7 +1,7 @@
-use super::ready::{kill, sanitize, scan, wait, Ready};
+use super::ready::{Ready, kill, sanitize, scan, wait};
 use serde_json::Value;
 use sidecar_core::plan::{Plan, Target};
-use sidecar_core::{broker, process, Paths};
+use sidecar_core::{Paths, broker, process};
 use std::fs::OpenOptions;
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
@@ -146,8 +146,8 @@ pub(crate) fn watch(
 pub(crate) mod state {
     use super::Launch;
     use serde_json::{Map, Value};
-    use sidecar_core::plan::Target;
     use sidecar_core::Paths;
+    use sidecar_core::plan::Target;
     use std::fs;
     use std::path::PathBuf;
 

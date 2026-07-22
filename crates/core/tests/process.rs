@@ -3,8 +3,7 @@ use sidecar_core::process::{Broker, Stamped};
 
 #[test]
 fn ps() {
-    let text =
-        "  123 cargo run --sidecar-stamp=v=1;a=api;n=default;m=dev;s=tool%3Asidecar\n  456 node server.js\n";
+    let text = "  123 cargo run --sidecar-stamp=v=1;a=api;n=default;m=dev;s=tool%3Asidecar\n  456 node server.js\n";
     let parsed = process::parse(text);
     assert_eq!(parsed.len(), 2);
     assert_eq!(

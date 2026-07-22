@@ -64,10 +64,11 @@ impl Args {
             self.home.as_deref().map(Path::new),
             state.config.project.data.as_deref(),
         );
-        if state.config.project.data.is_some() && paths.project.is_relative() {
-            if let Some(config_dir) = state.path.parent() {
-                paths.project = config_dir.join(&paths.project);
-            }
+        if state.config.project.data.is_some()
+            && paths.project.is_relative()
+            && let Some(config_dir) = state.path.parent()
+        {
+            paths.project = config_dir.join(&paths.project);
         }
         paths
     }

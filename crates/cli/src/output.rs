@@ -32,8 +32,8 @@ fn line(command: &str, args: &[String]) -> String {
 
 mod text {
     use super::{line, severity};
-    use sidecar_core::plan::Plan;
     use sidecar_core::Diagnostic;
+    use sidecar_core::plan::Plan;
 
     pub(super) fn diagnostics(diagnostics: &[Diagnostic]) -> Result<(), String> {
         if diagnostics.is_empty() {
@@ -92,8 +92,8 @@ mod text {
 
 mod json {
     use super::severity;
-    use sidecar_core::plan::{App, Inherit, Plan, Sidecar, Target};
     use sidecar_core::Diagnostic;
+    use sidecar_core::plan::{App, Inherit, Plan, Sidecar, Target};
 
     pub(super) fn diagnostics(diagnostics: &[Diagnostic]) -> Result<(), String> {
         let items: Vec<_> = diagnostics

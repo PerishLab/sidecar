@@ -99,10 +99,10 @@ fn enabled(channel: &str) -> bool {
 }
 
 fn base() -> Option<String> {
-    if let Ok(value) = env::var("SIDECAR_RELEASES_PUBLIC_URL") {
-        if !value.is_empty() {
-            return Some(value);
-        }
+    if let Ok(value) = env::var("SIDECAR_RELEASES_PUBLIC_URL")
+        && !value.is_empty()
+    {
+        return Some(value);
     }
     option_env!("SIDECAR_BUILD_PUBLIC_URL")
         .filter(|s| !s.is_empty())
@@ -141,10 +141,10 @@ fn duration(raw: &str) -> Option<Duration> {
 fn latest(base: &str, channel: &str, ttl: Duration) -> Option<String> {
     let cache = store().map(|d| d.join(format!("update-{channel}.json")));
     let now = now();
-    if let Some(path) = &cache {
-        if let Some(latest) = fresh(path, channel, ttl) {
-            return Some(latest);
-        }
+    if let Some(path) = &cache
+        && let Some(latest) = fresh(path, channel, ttl)
+    {
+        return Some(latest);
     }
     let url = format!(
         "{}/{}/latest/metadata.json",

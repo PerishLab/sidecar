@@ -186,7 +186,7 @@ pub fn stop(pid: u32) -> Result<(), String> {
 
     #[cfg(windows)]
     {
-        use windows_sys::Win32::System::Console::{GenerateConsoleCtrlEvent, CTRL_BREAK_EVENT};
+        use windows_sys::Win32::System::Console::{CTRL_BREAK_EVENT, GenerateConsoleCtrlEvent};
 
         if !exists(pid) {
             return Ok(());

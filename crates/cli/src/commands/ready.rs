@@ -1,7 +1,7 @@
 use super::runtime::{running, state};
 use serde_json::Value;
 use sidecar_core::plan::{Plan, Target};
-use sidecar_core::{process, Paths};
+use sidecar_core::{Paths, process};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;

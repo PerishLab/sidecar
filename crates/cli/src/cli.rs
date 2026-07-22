@@ -1,4 +1,4 @@
-use crate::args::{parse, Args};
+use crate::args::{Args, parse};
 use crate::update;
 use crate::{broker, commands, output};
 use sidecar_core::Severity;
@@ -98,10 +98,10 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
     }
 
     if let Some(home) = &parsed.home {
-        std::env::set_var("SIDECAR_DATA_HOME", home);
+        unsafe { std::env::set_var("SIDECAR_DATA_HOME", home) };
     }
     if let Some(project) = &parsed.project {
-        std::env::set_var("SIDECAR_PROJECT", project);
+        unsafe { std::env::set_var("SIDECAR_PROJECT", project) };
     }
 
     let cmd = parsed.command[0].as_str();

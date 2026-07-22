@@ -52,12 +52,12 @@ fn dev() {
 fn env() {
     let key = "SIDECAR_NO_UPDATE_CHECK";
     let prev = std::env::var(key).ok();
-    std::env::set_var(key, "1");
+    unsafe { std::env::set_var(key, "1") };
     assert!(!update::enabled("beta"));
-    std::env::set_var(key, "0");
+    unsafe { std::env::set_var(key, "0") };
     assert!(update::enabled("beta"));
     match prev {
-        Some(value) => std::env::set_var(key, value),
-        None => std::env::remove_var(key),
+        Some(value) => unsafe { std::env::set_var(key, value) },
+        None => unsafe { std::env::remove_var(key) },
     }
 }
