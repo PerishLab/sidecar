@@ -98,7 +98,7 @@ version = "0.5.4"
 dependencies = [
  "clap",
  "core",
- "plumb-lib",
+ "plumb",
  "serde_json",
 ]
 
@@ -171,10 +171,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
-name = "plumb-lib"
+name = "plumb"
 version = "0.1.0"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "63e4a9cd46307d1dda419ec3d83785a5d1b1ce341a6e38678ec23e15284ff449"
+checksum = "045dc376238eaf69ab15609529105823af0bdec41c90ba998744ad88ba9a3c4d"
 dependencies = [
  "clap",
  "serde",

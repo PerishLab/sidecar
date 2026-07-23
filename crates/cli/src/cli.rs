@@ -27,11 +27,11 @@ impl Format {
 }
 
 pub fn version() -> &'static str {
-    plumb_lib::version!("SIDECAR")
+    plumb::version!("SIDECAR")
 }
 
 pub fn channel() -> &'static str {
-    plumb_lib::channel!("SIDECAR")
+    plumb::channel!("SIDECAR")
 }
 
 #[derive(Parser)]
