@@ -68,7 +68,7 @@ jobs:
         run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
       - name: CLI smoke
-        run: cargo run --locked -p cli -- doctor --config examples/minimal.toml
+        run: cargo run --locked -p sidecar -- doctor --config examples/minimal.toml
 
       - name: Install pinned negentropy
         run: |
