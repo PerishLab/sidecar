@@ -10,6 +10,7 @@ use runtime::{Broker, Launch};
 use serde_json::{Map, Value};
 use sidecar_core::plan::{Plan, Target};
 use sidecar_core::{Paths, State, inspect, process, socket};
+use std::collections::BTreeMap;
 use std::fs::{self, OpenOptions};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
@@ -33,7 +34,7 @@ pub(crate) struct Probe<'a> {
 
 impl Session {
     pub(crate) fn start(&self, sidecar: Option<&str>) -> Result<(), String> {
-        let plan = self.state.plan();
+        let plan = self.state.plan()?;
         let targets = pick(&plan, sidecar)?;
         let endpoint = Broker::new(&plan).ensure()?;
         let mut chain = Chain::load(&self.paths, &plan)?;
@@ -56,7 +57,7 @@ impl Session {
     }
 
     pub(crate) fn stop(&self, sidecar: Option<&str>, force: bool) -> Result<(), String> {
-        let plan = self.state.plan();
+        let plan = self.state.plan()?;
         let targets = pick(&plan, sidecar)?;
         let mut stopped = 0;
         for target in targets {
@@ -94,7 +95,7 @@ impl Session {
     }
 
     pub(crate) fn status(&self, format: Format) -> Result<(), String> {
-        let plan = self.state.plan();
+        let plan = self.state.plan()?;
         let state = runtime::state::load(&self.paths)?;
         let mut rows = Vec::new();
         for target in &plan.targets {
@@ -102,7 +103,7 @@ impl Session {
             rows.push(render::Row {
                 name: target.name.clone(),
                 pids,
-                health: health(target, &state),
+                health: health(target, &state)?,
             });
         }
         let broker = Broker::new(&plan).status()?;
@@ -110,7 +111,7 @@ impl Session {
     }
 
     pub(crate) fn list(&self, format: Format) -> Result<(), String> {
-        let plan = self.state.plan();
+        let plan = self.state.plan()?;
         let hits = process::Stamped::discover(None, &plan.namespace)
             .map_err(|err| format!("discovery failed for namespace `{}`: {err}", plan.namespace))?;
         let broker = Broker::new(&plan).status()?;
@@ -125,7 +126,7 @@ impl Session {
     }
 
     pub(crate) fn reset(&self, all: bool, force: bool) -> Result<(), String> {
-        let plan = self.state.plan();
+        let plan = self.state.plan()?;
         for target in &plan.targets {
             for pid in runtime::running(&self.paths, target)? {
                 process::stop(pid)
@@ -155,7 +156,7 @@ impl Session {
     }
 
     pub(crate) fn inspect(&self, probe: &Probe, format: Format) -> Result<(), String> {
-        let plan = self.state.plan();
+        let plan = self.state.plan()?;
         let target = plan
             .targets
             .iter()
@@ -210,8 +211,15 @@ impl Session {
             .stdin(Stdio::null())
             .stdout(Stdio::from(file))
             .stderr(Stdio::from(stderr));
+        let port = lease(target)?;
+        let mut vars = BTreeMap::new();
+        if let Some(port) = port {
+            vars.insert("port", port.to_string());
+        }
         for (key, value) in &target.env {
-            command.env(key, value);
+            let held = plumb::fill::fill(value, &vars)
+                .map_err(|err| format!("`{}` env {key}: {err}", target.name))?;
+            command.env(key, held);
         }
         for (key, value) in env {
             command.env(key, value);
@@ -219,7 +227,6 @@ impl Session {
         if let Some(socket) = &target.socket {
             command.env(SOCKET, socket);
         }
-        let port = lease(target)?;
         if let Some(port) = port {
             command.env(PORT, port.to_string());
         }

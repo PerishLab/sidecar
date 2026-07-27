@@ -40,23 +40,23 @@ impl Global {
 
     pub(crate) fn session(&self) -> Result<commands::Session, String> {
         let state = self.state()?;
-        let paths = self.paths(&state);
+        let paths = self.paths(&state)?;
         Ok(commands::Session { state, paths })
     }
 
-    pub(crate) fn paths(&self, state: &State) -> Paths {
+    pub(crate) fn paths(&self, state: &State) -> Result<Paths, String> {
         let mut paths = Paths::resolve(
             &state.config.project.namespace,
             self.home.as_deref().map(Path::new),
             state.config.project.data.as_deref(),
-        );
+        )?;
         if state.config.project.data.is_some()
             && paths.project.is_relative()
             && let Some(config_dir) = state.path.parent()
         {
             paths.project = config_dir.join(&paths.project);
         }
-        paths
+        Ok(paths)
     }
 }
 

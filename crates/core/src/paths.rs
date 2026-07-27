@@ -9,18 +9,28 @@ pub struct Paths {
 }
 
 impl Paths {
-    pub fn resolve(namespace: &str, explicit: Option<&Path>, data: Option<&str>) -> Paths {
+    pub fn resolve(
+        namespace: &str,
+        explicit: Option<&Path>,
+        data: Option<&str>,
+    ) -> Result<Paths, String> {
         let root = home(explicit);
         let state = root.join("state");
-        let project = data
-            .map(|value| PathBuf::from(value.replace("{namespace}", namespace)))
-            .unwrap_or_else(|| root.join("projects").join(namespace));
-        Paths {
+        let project = match data {
+            Some(value) => PathBuf::from(spot(value, namespace)?),
+            None => root.join("projects").join(namespace),
+        };
+        Ok(Paths {
             root,
             state,
             project,
-        }
+        })
     }
+}
+
+fn spot(value: &str, namespace: &str) -> Result<String, String> {
+    let vars = std::collections::BTreeMap::from([("namespace", namespace.to_string())]);
+    plumb::fill::fill(value, &vars).map_err(|err| format!("project.data template: {err}"))
 }
 
 pub fn home(explicit: Option<&Path>) -> PathBuf {

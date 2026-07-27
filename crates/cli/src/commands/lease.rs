@@ -14,13 +14,27 @@ pub(super) fn lease(target: &Target) -> Result<Option<u16>, String> {
     }
 }
 
-pub(super) fn health(target: &Target, state: &Map<String, Value>) -> Option<String> {
-    let template = target.health.as_ref()?;
-    if !template.contains("{port}") {
-        return Some(template.clone());
+pub(super) fn health(
+    target: &Target,
+    state: &Map<String, Value>,
+) -> Result<Option<String>, String> {
+    let Some(template) = target.health.as_ref() else {
+        return Ok(None);
+    };
+    if !template.contains('{') {
+        return Ok(Some(template.clone()));
     }
-    let port = state.get(&target.name)?.get("port")?.as_u64()?;
-    Some(template.replace("{port}", &port.to_string()))
+    let held = state
+        .get(&target.name)
+        .and_then(|entry| entry.get("port"))
+        .and_then(Value::as_u64);
+    let Some(port) = held else {
+        return Ok(None);
+    };
+    let vars = BTreeMap::from([("port", port.to_string())]);
+    plumb::fill::fill(template, &vars)
+        .map(Some)
+        .map_err(|err| format!("`{}` health_url: {err}", target.name))
 }
 
 pub(super) fn purge(path: &Path, label: &str) -> Result<(), String> {

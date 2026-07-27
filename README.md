@@ -145,16 +145,24 @@ Top-level shape:
 - `[app]`: optional foreground app target, launched after sidecars
 - per target: `name`, `command`, `args`, `cwd`, `mode`, `env`, `inspect_socket`, `inherits_env`, `port`, `health_url`, `ready`
 
-`inspect_socket` supports `{project}`, `{namespace}`, and `{name}` templates.
+Templates in manifest values follow plumb's fill grammar (`plumb:docs/fill.md`):
+`{name}` resolves against the field's variable table, `{{`/`}}` are the literal
+braces, and an unknown, unclosed, bare, or empty form refuses to boot — never a
+silent pass-through. `inspect_socket` resolves `{project}`, `{namespace}`, and
+`{name}`; `project.data` resolves `{namespace}`; `health_url` and per-target
+`env` values resolve `{port}`.
 
 `port` puts the target's listen port under sidecar's control: `port = 0` leases
 a free loopback port at every start; any other value pins it. The resolved port
 is injected into the target's env as `SIDECAR_PORT`, recorded in target state,
-and substituted into the `{port}` template of `health_url`. The target stays
-business-unaware: it reads one env var and binds. `status` prints the resolved
-`health_url` next to each running target (text) and as `healthUrl` (JSON), so
-consumers discover the live address from `sidecar status --format json` instead
-of hardcoding it.
+and substituted into the `{port}` template of `health_url`. A target that
+follows a config cascade takes the port through its own env vocabulary instead:
+template the value under the target's key, for example
+`env = { KEEL_LISTEN_PORT = "{port}" }` — the process stays fully
+sidecar-unaware. An `env` value that templates `{port}` on a target without a
+managed `port` refuses to start. `status` prints the resolved `health_url` next
+to each running target (text) and as `healthUrl` (JSON), so consumers discover
+the live address from `sidecar status --format json` instead of hardcoding it.
 
 ## Broker Runtime
 

@@ -164,7 +164,7 @@ fn planned() {
         "#,
     );
 
-    let plan = state.plan();
+    let plan = state.plan().expect("plan");
     assert_eq!(plan.project, "app");
     assert_eq!(plan.namespace, "default");
     assert_eq!(plan.app.unwrap().command, "pnpm");
@@ -185,7 +185,7 @@ fn endpoint() {
         "#,
     );
 
-    let plan = state.plan();
+    let plan = state.plan().expect("plan");
     let args = plan.targets[0].launch("tcp://127.0.0.1:4100");
     let stamp = args
         .iter()
@@ -210,7 +210,7 @@ fn leased() {
         "#,
     );
 
-    let plan = state.plan();
+    let plan = state.plan().expect("plan");
     let app = plan.app.expect("app should plan");
     assert_eq!(app.port, Some(0));
     assert_eq!(app.health.as_deref(), Some("http://127.0.0.1:{port}"));
@@ -232,7 +232,7 @@ fn pinned() {
         "#,
     );
 
-    let plan = state.plan();
+    let plan = state.plan().expect("plan");
     let target = plan.targets.first().expect("target should exist");
     assert_eq!(target.port, Some(3901));
     assert_eq!(target.health, None);
@@ -243,4 +243,42 @@ fn seed(text: &str) -> State {
         path: PathBuf::from("inline.toml"),
         config: toml::from_str(text).unwrap(),
     }
+}
+
+#[test]
+fn templated() {
+    let state = seed(
+        r#"
+        [project]
+        name = "site"
+        namespace = "lab"
+
+        [[sidecars]]
+        name = "api"
+        command = "cargo"
+        inspect_socket = "/tmp/{namespace}-{name}.sock"
+        "#,
+    );
+
+    let plan = state.plan().expect("plan");
+    let target = plan.targets.first().expect("target should exist");
+    assert_eq!(target.socket.as_deref(), Some("/tmp/lab-api.sock"));
+}
+
+#[test]
+fn refused() {
+    let state = seed(
+        r#"
+        [project]
+        name = "site"
+
+        [[sidecars]]
+        name = "api"
+        command = "cargo"
+        inspect_socket = "/tmp/{ghost}.sock"
+        "#,
+    );
+
+    let error = state.plan().expect_err("unknown variable should refuse");
+    assert!(error.contains("ghost"), "{error}");
 }

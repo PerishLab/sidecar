@@ -115,7 +115,7 @@ impl State {
         diagnostics
     }
 
-    pub fn plan(&self) -> Plan {
+    pub fn plan(&self) -> Result<Plan, String> {
         self.config.plan()
     }
 }

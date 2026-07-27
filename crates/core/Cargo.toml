@@ -10,6 +10,7 @@ name = "sidecar_core"
 path = "src/lib.rs"
 
 [dependencies]
+plumb.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true

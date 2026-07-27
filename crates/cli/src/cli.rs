@@ -154,7 +154,7 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
         }
         Verb::Plan => {
             let state = global.state()?;
-            output::plan(&state.plan(), global.format)
+            output::plan(&state.plan()?, global.format)
         }
         Verb::Inspect {
             first,
@@ -180,7 +180,7 @@ fn inspect(
         (None, _) => Err("inspect requires `config` or `<sidecar> <event> [payload]`".to_string()),
         (Some("config"), None) => {
             let state = global.state()?;
-            output::plan(&state.plan(), global.format)
+            output::plan(&state.plan()?, global.format)
         }
         (Some("config"), Some(extra)) => {
             Err(format!("unsupported inspect config arguments: {extra}"))

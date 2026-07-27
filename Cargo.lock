@@ -102,6 +102,7 @@ checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 name = "core"
 version = "0.5.4"
 dependencies = [
+ "plumb",
  "serde",
  "serde_json",
  "toml 0.8.23",
@@ -161,14 +162,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
+name = "pin-project-lite"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
+
+[[package]]
 name = "plumb"
-version = "0.1.0"
+version = "0.6.0"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "045dc376238eaf69ab15609529105823af0bdec41c90ba998744ad88ba9a3c4d"
+checksum = "6e8ce13ec657b54d49377204e8d36d2d4f5765d9876a189456a8460fea6b186a"
 dependencies = [
  "clap",
+ "pin-project-lite",
+ "plumb-macro",
  "serde",
  "toml 0.9.12+spec-1.1.0",
+]
+
+[[package]]
+name = "plumb-macro"
+version = "0.6.0"
+source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
+checksum = "f66c3ed961ac9942a708d761d4bfaaf45992d0eb5ce786596660ea88bdfa520f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]

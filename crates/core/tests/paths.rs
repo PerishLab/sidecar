@@ -33,7 +33,7 @@ fn scoped<F: FnOnce()>(test: F) {
 fn cli() {
     scoped(|| {
         unsafe { std::env::set_var("SIDECAR_DATA_HOME", "/from/env") };
-        let paths = Paths::resolve("default", Some(Path::new("/from/cli")), None);
+        let paths = Paths::resolve("default", Some(Path::new("/from/cli")), None).expect("resolve");
         assert_eq!(paths.root, PathBuf::from("/from/cli"));
         assert_eq!(paths.state, PathBuf::from("/from/cli/state"));
         assert_eq!(paths.project, PathBuf::from("/from/cli/projects/default"));
@@ -44,7 +44,7 @@ fn cli() {
 fn env() {
     scoped(|| {
         unsafe { std::env::set_var("SIDECAR_DATA_HOME", "/from/env") };
-        let paths = Paths::resolve("staging", None, None);
+        let paths = Paths::resolve("staging", None, None).expect("resolve");
         assert_eq!(paths.root, PathBuf::from("/from/env"));
         assert_eq!(paths.project, PathBuf::from("/from/env/projects/staging"));
     });
@@ -54,7 +54,7 @@ fn env() {
 fn xdg() {
     scoped(|| {
         unsafe { std::env::set_var("XDG_DATA_HOME", "/xdg/data") };
-        let paths = Paths::resolve("default", None, None);
+        let paths = Paths::resolve("default", None, None).expect("resolve");
         assert_eq!(paths.root, PathBuf::from("/xdg/data/sidecar"));
     });
 }
@@ -62,7 +62,7 @@ fn xdg() {
 #[test]
 fn home() {
     scoped(|| {
-        let paths = Paths::resolve("default", None, None);
+        let paths = Paths::resolve("default", None, None).expect("resolve");
         assert_eq!(
             paths.root,
             PathBuf::from("/tmp/fake-home/.local/share/sidecar")
@@ -74,7 +74,7 @@ fn home() {
 fn manifest() {
     scoped(|| {
         unsafe { std::env::set_var("SIDECAR_DATA_HOME", "/from/env") };
-        let paths = Paths::resolve("default", None, Some("/elsewhere/proj"));
+        let paths = Paths::resolve("default", None, Some("/elsewhere/proj")).expect("resolve");
         assert_eq!(paths.root, PathBuf::from("/from/env"));
         assert_eq!(paths.state, PathBuf::from("/from/env/state"));
         assert_eq!(paths.project, PathBuf::from("/elsewhere/proj"));
