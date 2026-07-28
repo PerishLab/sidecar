@@ -14,7 +14,10 @@ New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 $env:SIDECAR_BUILD_VERSION = $releaseVersion
 $env:SIDECAR_BUILD_CHANNEL = if ($env:RELEASE_CHANNEL) { $env:RELEASE_CHANNEL } else { 'dev' }
 $env:SIDECAR_BUILD_PUBLIC_URL = if ($env:SIDECAR_RELEASES_PUBLIC_URL) { $env:SIDECAR_RELEASES_PUBLIC_URL } else { '' }
-cargo build --release --locked -p cli --target $target
+cargo build --release --locked -p sidecar --target $target
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
 
 $archive = "$name-$target.zip"
 $tmpdir = Join-Path ([System.IO.Path]::GetTempPath()) ("$name-" + [System.Guid]::NewGuid().ToString('N'))

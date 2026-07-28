@@ -19,13 +19,13 @@ if [ -n "${TARGET:-}" ]; then
   SIDECAR_BUILD_VERSION="$RELEASE_VERSION" \
   SIDECAR_BUILD_CHANNEL="$BUILD_CHANNEL" \
   SIDECAR_BUILD_PUBLIC_URL="$BUILD_PUBLIC_URL" \
-    cargo build --release --locked -p cli --target "$TARGET"
+    cargo build --release --locked -p sidecar --target "$TARGET"
   BIN="$ROOT/target/$TARGET/release/$NAME"
 else
   SIDECAR_BUILD_VERSION="$RELEASE_VERSION" \
   SIDECAR_BUILD_CHANNEL="$BUILD_CHANNEL" \
   SIDECAR_BUILD_PUBLIC_URL="$BUILD_PUBLIC_URL" \
-    cargo build --release --locked -p cli
+    cargo build --release --locked -p sidecar
   BIN="$ROOT/target/release/$NAME"
 fi
 
