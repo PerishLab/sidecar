@@ -44,7 +44,7 @@ The TCP broker is local service discovery and runtime registry for host processe
 
 ## Build-time Stamps
 
-`crates/cli` reads three optional build-time env vars via `option_env!` and bakes them into the binary; `.github/scripts/release/assets/package.{sh,ps1}` set all three from the release workflow:
+`crates/cli` reads three optional build-time env vars via `option_env!` and bakes them into the binary; `.forgejo/scripts/release/assets/package.{sh,ps1}` set all three from the release workflow:
 
 - `SIDECAR_BUILD_VERSION` → `cli::version()` (defaults to `v<CARGO_PKG_VERSION>` for dev builds).
 - `SIDECAR_BUILD_CHANNEL` → `cli::channel()` (`stable` / `beta` / `dev`; defaults to `dev`, which disables the startup check and `update` subcommand).
@@ -102,20 +102,33 @@ Root `manage.{sh,ps1}` accept exactly: `install`, `update`, `uninstall`. There i
 
 ## Repo-local Support
 
-`runseal.toml` and `.runseal/wrappers/*` are the repo-local operator entrypoints for support tasks that do not belong in the installable `sidecar` product binary. The wrappers are Deno TypeScript run through `runseal`; local development requires `runseal`, `deno`, and a `negentropy` binary matching the pin in `.runseal/negentropy.version`. Current support commands:
+`runseal.toml` and `.runseal/wrappers/*` are thin repo-local operator
+entrypoints for support tasks that do not belong in the installable `sidecar`
+product binary. Shared operator logic belongs in Sealkit; `.runseal` contains
+no dedicated TypeScript tests. Local development requires `runseal`, `deno`,
+Ectropy, and Plumb. Current support commands:
 
-- `runseal :init` — idempotent post-clone validator. It quick-fails on missing required tools (git, deno, cargo, gh, runseal, the pinned negentropy) or repository entrypoints, and exits cleanly only when the checkout is ready for development.
-- `runseal :guard` — the full local gate: fmt, clippy, tests, `deno fmt` / `deno check` over `.runseal`, and the pinned `negentropy --strict .`.
-- `runseal :land` — lands the current clean topic branch: push, create or reuse the PR, await the checks on the exact pushed head SHA, squash-merge pinned to that SHA, sync `main`, delete the branch. `--dry-run` prints the plan without touching git or GitHub.
-- `runseal :cloudflare` — repo-local Cloudflare support for checking credentials and ensuring exact-path `sidecar.perish.uk/manage.sh|ps1` redirects to the release bucket. Use `manage-ensure-redirect --dry-run` before applying changes.
+- `runseal :init` — idempotent post-clone validator for tools, repository
+  entrypoints, and versioned Git hooks.
+- `runseal :guard` — the full local gate: fmt, clippy, tests, Deno checks,
+  `plumb doctor .`, and `ectropy --strict .`.
+- `runseal :land` — lands the current clean topic branch through Forgejo,
+  waits for checks on the exact pushed head SHA, squash-merges that SHA, syncs
+  `main`, and deletes the branch. `--dry-run` prints the plan without mutation.
+- `runseal :release` — dispatches the stable or beta Forgejo release workflow.
 
 ## Constitution
 
-`negentropy` is the structure checker for this repository; `negentropy --strict .` must print `clean` before anything lands. Its configuration is repo-owned:
+Ectropy owns pure AST syntax execution. Plumb owns repository shape, the
+canonical `ectropy.toml` policy, and which paths receive syntax grants. Both
+must pass before anything lands:
 
-- `negentropy.toml` — scan roots (`crates/**/*.rs`, `docs/**/*.md`), module roots, block/path depth limits, the comment ban, the single-word identifier rule, and the test-syntax grant for `crates/*/tests`.
-- `vocabulary.toml` — registered compound atoms; while it is empty, every identifier must stay a single word.
-- `.runseal/negentropy.version` — the pinned checker version (currently `v0.1.0-beta.9`). `runseal :init`, `runseal :guard`, and CI all verify the installed binary against this pin and refuse a mismatch.
+- `ectropy.toml` — scan roots (`crates/**/*.rs`, `docs/**/*.md`), module roots,
+  limits, the comment ban, the single-word rule, and explicit test/environment
+  grants.
+- `plumb doctor .` — repository layout, operator, workflow, and policy
+  enforcement.
+- `ectropy --strict .` — syntax execution against that policy.
 
 ## Common Commands
 
@@ -124,7 +137,7 @@ Root `manage.{sh,ps1}` accept exactly: `install`, `update`, `uninstall`. There i
 - Clippy: `cargo clippy --locked --workspace --all-targets -- -D warnings`
 - CLI smoke: `cargo run --locked -p cli -- doctor --config examples/minimal.toml`
 - Plan: `cargo run --locked -p cli -- plan --config examples/minimal.toml --format json`
-- Constitution check: `negentropy --strict .`
+- Repository check: `plumb doctor . && ectropy --strict .`
 - Full gate: `runseal :guard`
 
 ## Repository Shape
@@ -133,9 +146,11 @@ Root `manage.{sh,ps1}` accept exactly: `install`, `update`, `uninstall`. There i
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
 - `manage.sh` and `manage.ps1`: public install/update/uninstall manager entrypoints uploaded as release assets.
 - `docs/`: durable design notes for planned architecture changes, including the TCP broker runtime direction.
-- `.runseal/`: runseal wrapper entrypoints (`guard.ts`, `init.ts`, `land.ts`, `cloudflare.seal`), the shared wrapper `lib/`, and the `negentropy.version` pin.
-- `negentropy.toml` and `vocabulary.toml`: the constitution the `negentropy` checker enforces over `crates/` and `docs/`.
-- `.github/scripts/`: workflow-only release helpers.
+- `.runseal/`: thin runseal wrapper entrypoints for guard, init, land, and
+  release.
+- `ectropy.toml`: the Plumb-managed syntax policy Ectropy executes over
+  `crates/` and `docs/`.
+- `.forgejo/scripts/`: workflow-only release helpers.
 
 ## Standard Workflow
 
@@ -147,7 +162,9 @@ After cloning or when the toolchain looks stale, run:
 runseal :init
 ```
 
-It validates the required tools (including a `negentropy` matching `.runseal/negentropy.version`) and the repository entrypoints, then exits. It installs nothing: there are no local git hooks. The gates are `runseal :guard` before landing and the `guard` workflow in CI.
+It validates the required tools and repository entrypoints, then installs the
+versioned Git hooks. The gates are `runseal :guard` before landing and the
+`guard` workflow in CI.
 
 ### Branch Names
 
@@ -178,10 +195,13 @@ cargo clippy --locked --workspace --all-targets -- -D warnings
 cargo test --locked --workspace
 deno fmt --check .runseal
 deno check --config .runseal/deno.json --lock .runseal/deno.lock --frozen=true .runseal/wrappers/*.ts
-negentropy --strict .
+plumb doctor .
+ectropy --strict .
 ```
 
-CI reruns the same wrapper: `.github/workflows/guard.yml` installs the pinned negentropy release, then executes `.runseal/wrappers/guard.ts` on every PR and every push to `main`.
+CI reruns the same wrapper: `.forgejo/workflows/guard.yml` installs Ectropy and
+Plumb through the shared actions, then executes `.runseal/wrappers/guard.ts` on
+every PR and every push to `main`.
 
 ### PR Descriptions
 
@@ -202,7 +222,9 @@ Add `## Compatibility` when a manifest field, CLI flag, protocol field, output s
 
 ### Merging
 
-`main` is PR-only and protected by the repository ruleset `main guard`. The required merge gate is the `guard` check from `.github/workflows/guard.yml` (currently `guard (ubuntu-latest)`). Required approvals are intentionally `0`.
+`main` is PR-only and protected by the repository ruleset `main guard`. The
+required merge gate is the `guard` check from `.forgejo/workflows/guard.yml`.
+Required approvals are intentionally `0`.
 
 From a clean topic branch, default to landing with:
 
@@ -210,7 +232,9 @@ From a clean topic branch, default to landing with:
 runseal :land
 ```
 
-It pushes the branch, creates or reuses the PR, records the exact pushed head SHA, polls the GitHub check-runs on that SHA until every one succeeds, squash-merges with `--match-head-commit <sha>` so only the audited commit can land, syncs `main`, and deletes the branch. If `:land` is unavailable, wait for green checks and fall back to `gh pr merge <num> --squash --delete-branch`.
+It pushes the branch, creates or reuses the PR, records the exact pushed head
+SHA, polls the Forgejo checks on that SHA until every one succeeds,
+squash-merges only the audited commit, syncs `main`, and deletes the branch.
 
 ## Stamp args protocol
 

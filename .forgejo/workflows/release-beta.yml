@@ -70,15 +70,17 @@ jobs:
       - name: CLI smoke
         run: cargo run --locked -p sidecar -- doctor --config examples/minimal.toml
 
-      - name: Install pinned negentropy
-        run: |
-          set -eu
-          curl -fsSL https://releases.negentropy.perish.uk/manage.sh -o "$RUNNER_TEMP/manage-negentropy.sh"
-          sh "$RUNNER_TEMP/manage-negentropy.sh" install --channel stable --bin-dir "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install Ectropy
+        uses: PerishLab/actions/setup-ectropy@main
 
-      - name: Negentropy
-        run: negentropy --strict .
+      - name: Install Plumb
+        uses: PerishLab/actions/setup-plumb@main
+
+      - name: Plumb
+        run: plumb doctor .
+
+      - name: Ectropy
+        run: ectropy --strict .
 
   build:
     needs: [metadata, verify]

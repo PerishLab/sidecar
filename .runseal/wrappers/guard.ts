@@ -29,8 +29,10 @@ await guard(
         ".runseal/wrappers/guard.ts",
         ".runseal/wrappers/init.ts",
         ".runseal/wrappers/land.ts",
+        ".runseal/wrappers/release.ts",
       ]]],
     },
+    { label: "plumb doctor", runs: [["plumb", ["doctor", "."]]] },
   ],
   Deno.args,
 );

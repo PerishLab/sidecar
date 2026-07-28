@@ -1,0 +1,43 @@
+[comment]
+allow = false
+
+[[grant]]
+paths = ["crates/*/tests/**/*.rs"]
+syntax = "test"
+
+[[grant]]
+paths = [
+  "crates/cli/src/args.rs",
+  "crates/cli/src/cli.rs",
+  "crates/cli/src/commands/runtime.rs",
+  "crates/cli/src/main.rs",
+  "crates/cli/src/update.rs",
+  "crates/core/src/paths.rs",
+  "crates/*/tests/**/*.rs",
+]
+syntax = "environment"
+
+[limit]
+block = 4
+fanout = 10
+file = 300
+markup = 8
+param = 4
+path = 4
+
+[module]
+roots = [
+  "crates/*/src",
+  "crates/*/tests",
+  "docs",
+]
+
+[scan]
+exclude = ["**/target/**"]
+include = [
+  "crates/**/*.rs",
+  "docs/**/*.md",
+]
+
+[word]
+single = true
