@@ -16,7 +16,7 @@ pub fn listeners(pid: u32) -> Result<Vec<SocketAddr>, String> {
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
-pub fn listeners(_pid: u32) -> Result<Vec<SocketAddr>, String> {
+pub fn listeners(_: u32) -> Result<Vec<SocketAddr>, String> {
     Err("TCP listener discovery is not implemented on this platform".to_string())
 }
 

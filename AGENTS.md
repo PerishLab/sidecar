@@ -111,7 +111,7 @@ Ectropy, and Plumb. Current support commands:
 - `runseal :init` — idempotent post-clone validator for tools, repository
   entrypoints, and versioned Git hooks.
 - `runseal :guard` — the full local gate: fmt, clippy, tests, Deno checks,
-  `plumb doctor .`, and `ectropy --strict .`.
+  `plumb doctor .`, and errors-only `ectropy .`.
 - `runseal :land` — lands the current clean topic branch through Forgejo,
   waits for checks on the exact pushed head SHA, squash-merges that SHA, syncs
   `main`, and deletes the branch. `--dry-run` prints the plan without mutation.
@@ -128,7 +128,7 @@ must pass before anything lands:
   grants.
 - `plumb doctor .` — repository layout, operator, workflow, and policy
   enforcement.
-- `ectropy --strict .` — syntax execution against that policy.
+- `ectropy .` — errors fail the repository; warnings remain visible.
 
 ## Common Commands
 
@@ -137,7 +137,7 @@ must pass before anything lands:
 - Clippy: `cargo clippy --locked --workspace --all-targets -- -D warnings`
 - CLI smoke: `cargo run --locked -p cli -- doctor --config examples/minimal.toml`
 - Plan: `cargo run --locked -p cli -- plan --config examples/minimal.toml --format json`
-- Repository check: `plumb doctor . && ectropy --strict .`
+- Repository check: `plumb doctor . && ectropy .`
 - Full gate: `runseal :guard`
 
 ## Repository Shape
@@ -196,7 +196,7 @@ cargo test --locked --workspace
 deno fmt --check .runseal
 deno check --config .runseal/deno.json --lock .runseal/deno.lock --frozen=true .runseal/wrappers/*.ts
 plumb doctor .
-ectropy --strict .
+ectropy .
 ```
 
 CI reruns the same wrapper: `.forgejo/workflows/guard.yml` installs Ectropy and

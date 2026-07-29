@@ -110,11 +110,7 @@ fn unix(
 }
 
 #[cfg(not(unix))]
-fn unix(
-    _path: &std::path::PathBuf,
-    _line: &str,
-    _timeout: Option<Duration>,
-) -> Result<String, String> {
+fn unix(_: &std::path::PathBuf, _: &str, _: Option<Duration>) -> Result<String, String> {
     Err("unix inspect transport is not available on this platform".to_string())
 }
 
