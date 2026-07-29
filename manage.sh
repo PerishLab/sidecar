@@ -66,6 +66,11 @@ Usage:
   manage.sh update  [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
   manage.sh uninstall [--version vX.Y.Z]
 
+install and update leave exactly one version on disk. Earlier versions are
+removed once the new binary is linked and answers --version, and each removal is
+named. Rolling back is install --version <older>, which fetches that version
+again; released artifacts are immutable and always retrievable.
+
 Environment:
   SIDECAR_RELEASES_PUBLIC_URL  # default: https://releases.sidecar.perish.uk
   SIDECAR_CHANNEL
@@ -129,6 +134,22 @@ install_sidecar() {
   ln -s "$INSTALL_ROOT/$VERSION/sidecar" "$link"
   "$link" --version
   printf 'installed sidecar to %s\n' "$link"
+  sweep
+}
+
+sweep() {
+  swept=""
+  for seat in "$INSTALL_ROOT"/*; do
+    [ -d "$seat" ] || continue
+    held=$(basename "$seat")
+    if [ "$held" != "$VERSION" ]; then
+      rm -rf "$seat"
+      swept="$swept $held"
+    fi
+  done
+  if [ -n "$swept" ]; then
+    printf 'swept:%s\n' "$swept"
+  fi
 }
 
 uninstall_sidecar() {

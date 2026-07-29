@@ -263,3 +263,17 @@ When CLI inspect is called without an explicit payload, the request payload is `
 Default transport is Unix (`unix:///absolute/path.sock`). TCP is reserved for non-Unix fallback only.
 
 The implementation is `crates/core/src/inspect.rs`. The CLI orchestration is `commands::inspect` in `crates/cli/src/commands.rs`.
+
+## Release
+
+- `manage.sh` and `manage.ps1` leave exactly one version under the install root.
+  Earlier versions are removed once the new binary is linked and answers
+  `--version`, and each removal is named. The versioned root was never a
+  rollback cache: `install --version <older>` refetches, so nothing ever read
+  what accumulated there.
+- A stable release refuses to publish without
+  `docs/CHANGELOG/v<version>/{en,zh}/{INDEX.md,MIGRATION.md}`, enforced by the
+  `Changelog` step in `release-stable.yml` before anything irreversible.
+  `plumb doctor` does not check this: a changelog is owed by a release, not by a
+  working tree. A release requiring nothing of anyone still writes MIGRATION.md
+  saying so. See `plumb/docs/changelog.md`.

@@ -78,6 +78,11 @@ jobs:
       - name: Plumb
         run: plumb doctor .
 
+      - name: Changelog
+        env:
+          RELEASE_VERSION: ${{ needs.metadata.outputs.release_version }}
+        run: plumb changelog . --version "$RELEASE_VERSION"
+
       - name: Ectropy
         run: ectropy --strict .
 
