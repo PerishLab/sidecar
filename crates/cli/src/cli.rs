@@ -95,7 +95,7 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
             return Ok(());
         }
         Some("--version" | "-V") => {
-            println!("sidecar {} ({})", version(), channel());
+            println!("sidecar {}", version());
             return Ok(());
         }
         _ => {}
@@ -129,7 +129,7 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
             Ok(())
         }
         Verb::Version => {
-            println!("sidecar {} ({})", version(), channel());
+            println!("sidecar {}", version());
             Ok(())
         }
         Verb::Update => update::run(channel()),

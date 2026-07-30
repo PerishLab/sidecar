@@ -18,6 +18,9 @@ pub fn notice(current: &str, build: &str) {
     let Some(base) = base() else {
         return;
     };
+    if !paths::canonical(&base) || !paths::installed() {
+        return;
+    }
     let Some(latest) = latest(&base, &channel, ttl()) else {
         return;
     };
@@ -30,16 +33,28 @@ pub fn notice(current: &str, build: &str) {
 
 pub fn run(build: &str) -> Result<(), String> {
     let channel = channel(build);
-    if channel == "dev" || channel.is_empty() {
+    if channel != "stable" {
         return Err(
-            "update is unavailable on dev builds; install a release first via manage.sh|ps1"
+            "sidecar update is stable-only; replace non-stable builds with an exact isolated manager invocation"
                 .to_string(),
         );
     }
     let base = base().ok_or_else(|| {
-        "SIDECAR_RELEASES_PUBLIC_URL is required (or rebuild with SIDECAR_BUILD_PUBLIC_URL)"
+        "SIDECAR_RELEASES_PUBLIC_URL is required (or rebuild with SIDECAR_BUILD_AUTHORITY)"
             .to_string()
     })?;
+    if !paths::canonical(&base) {
+        return Err(
+            "sidecar update requires the canonical stable release authority; use an exact isolated manager invocation"
+                .to_string(),
+        );
+    }
+    if !paths::installed() {
+        return Err(
+            "sidecar update requires the canonical stable default seat; use manage.sh|ps1 with explicit paths"
+                .to_string(),
+        );
+    }
 
     let (name, runner, prefix): (&str, &str, &[&str]) = if cfg!(windows) {
         (
@@ -50,7 +65,7 @@ pub fn run(build: &str) -> Result<(), String> {
     } else {
         ("manage.sh", "sh", &[])
     };
-    let url = format!("{}/{}/latest/{}", base.trim_end_matches('/'), channel, name);
+    let url = format!("{}/{}", base.trim_end_matches('/'), name);
 
     let tmpdir = scratch().map_err(|err| format!("failed to create tempdir: {err}"))?;
     let script = tmpdir.join(name);
@@ -69,7 +84,7 @@ pub fn run(build: &str) -> Result<(), String> {
     let mut cmd = Command::new(runner);
     cmd.args(prefix);
     cmd.arg(&script);
-    cmd.args(["update", "--channel", &channel, "--public-url", &base]);
+    cmd.args(["update", "--channel", "stable", "--public-url", &base]);
     let result = cmd.status();
     let _ = fs::remove_dir_all(&tmpdir);
     let status = result.map_err(|err| format!("failed to invoke manager: {err}"))?;
@@ -92,7 +107,7 @@ fn channel(build: &str) -> String {
 }
 
 fn enabled(channel: &str) -> bool {
-    if channel == "dev" || channel.is_empty() {
+    if channel != "stable" {
         return false;
     }
     !matches!(env::var("SIDECAR_NO_UPDATE_CHECK"), Ok(value) if !value.is_empty() && value != "0")
@@ -104,7 +119,7 @@ fn base() -> Option<String> {
     {
         return Some(value);
     }
-    option_env!("SIDECAR_BUILD_PUBLIC_URL")
+    option_env!("SIDECAR_BUILD_AUTHORITY")
         .filter(|s| !s.is_empty())
         .map(String::from)
 }
@@ -146,14 +161,16 @@ fn latest(base: &str, channel: &str, ttl: Duration) -> Option<String> {
     {
         return Some(latest);
     }
-    let url = format!(
-        "{}/{}/latest/metadata.json",
-        base.trim_end_matches('/'),
-        channel
-    );
+    let url = format!("{}/v1/channels/stable.json", base.trim_end_matches('/'));
     let body = fetch(&url, FETCH)?;
     let parsed: serde_json::Value = serde_json::from_str(&body).ok()?;
-    let release = parsed.get("releaseVersion")?.as_str()?.to_string();
+    if parsed.get("schema")?.as_u64()? != 1
+        || parsed.get("product")?.as_str()? != "sidecar"
+        || parsed.get("channel")?.as_str()? != channel
+    {
+        return None;
+    }
+    let release = parsed.get("version")?.as_str()?.to_string();
     if let Some(path) = &cache {
         let _ = write(path, channel, now, &release);
     }
@@ -181,6 +198,9 @@ fn now() -> u64 {
 fn read(path: &Path, channel: &str) -> Option<(u64, String)> {
     let text = fs::read_to_string(path).ok()?;
     let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+    if value.get("version")?.as_u64()? != 2 {
+        return None;
+    }
     if value.get("channel")?.as_str()? != channel {
         return None;
     }
@@ -194,6 +214,7 @@ fn write(path: &Path, channel: &str, checked: u64, latest: &str) -> std::io::Res
         fs::create_dir_all(parent)?;
     }
     let body = serde_json::json!({
+        "version": 2,
         "checked_at": checked,
         "channel": channel,
         "latest_version": latest,

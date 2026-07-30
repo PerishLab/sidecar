@@ -55,7 +55,8 @@ fn env() {
     unsafe { std::env::set_var(key, "1") };
     assert!(!update::enabled("beta"));
     unsafe { std::env::set_var(key, "0") };
-    assert!(update::enabled("beta"));
+    assert!(!update::enabled("beta"));
+    assert!(update::enabled("stable"));
     match prev {
         Some(value) => unsafe { std::env::set_var(key, value) },
         None => unsafe { std::env::remove_var(key) },

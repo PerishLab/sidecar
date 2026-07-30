@@ -87,16 +87,28 @@ termination. `--force` escalates to `taskkill /T /F`.
 
 ## Install
 
-Release installation is R2-backed.
+Stable is the canonical default install:
 
 ```sh
-curl -fsSL https://sidecar.perish.uk/manage.sh \
-  | sh -s -- install --channel stable
+curl -fsSL https://releases.sidecar.perish.uk/manage.sh | sh
 ```
 
-Beta releases use the same manager with `--channel beta`. The manager defaults
-to `https://releases.sidecar.perish.uk` as its release asset root. The
-`sidecar.perish.uk` mapping is maintained through `runseal :cloudflare`.
+Every non-stable install names one exact version and two isolated paths:
+
+```sh
+version=v0.6.0-beta.1
+seat="$HOME/.local/opt/sidecar-$version"
+curl -fsSL https://releases.sidecar.perish.uk/manage.sh |
+  sh -s -- install \
+    --channel beta \
+    --version "$version" \
+    --install-root "$seat/install" \
+    --bin-dir "$seat/bin"
+```
+
+The root manager and default paths belong only to stable. Every channel version
+has one immutable seal at `v1/releases/<channel>/<version>/seal.json`; only
+stable has a moving pointer and root manager.
 
 ## Local Smoke
 
@@ -119,9 +131,11 @@ flavor check --root . --config flavor.toml
 
 ## Release
 
-Stable releases are started from the `release-stable` workflow (`.forgejo/workflows/release-stable.yml`). The workflow resolves the Cargo version against R2 metadata, runs verification, publishes artifacts and managers to R2, then creates the git tag after publish succeeds.
-
-Beta releases are started from `release-beta`. The workflow advances `vX.Y.Z-beta.N` from R2 beta metadata unless a version override is provided.
+`release-exact` accepts an explicit non-stable channel and version.
+`release-stable` accepts an explicit stable version and exact candidate proof.
+Current stable Plumb generates and seals the managers, performs public
+readback, activates stable consensus, and runs the cross-platform lifecycle
+smoke before the stable tag is created.
 
 ## Boundary
 

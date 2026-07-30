@@ -9,7 +9,8 @@
 3. **Broker runtime** — one project/namespace-scoped loopback TCP broker discovered from `--sidecar-broker` argv identity plus live listener probing; targets receive the broker endpoint through the stamp `e` field.
 4. **Inspect bridge** — a single-shot SidecarRuntime event frame over a Unix socket (TCP fallback) for talking to a running sidecar's inspect server.
 
-This repository is not a `stim.io` module. `stim.io` and other consumers install `sidecar` as a published CLI through the R2-backed `manage.sh` / `manage.ps1` entrypoints.
+This repository is not a `stim.io` module. `stim.io` and other consumers install
+`sidecar` through the stable managers generated from `plumb.toml`.
 
 ## Product Boundary
 
@@ -31,7 +32,8 @@ The TCP broker is local service discovery and runtime registry for host processe
 - Keep `crates/cli` as the installed binary boundary named `sidecar`.
 - Manifest fields describe local process control-plane behavior only: start shape, cwd, args, env, readiness, identity, discovery, inspect, stop, reset, and data paths. Do not add product semantics or container/cluster scheduling semantics.
 - `--config <path>` is the explicit manifest override. Without it, sidecar walks from cwd upward for the nearest `sidecar.toml`.
-- Release assets are R2-backed. `SIDECAR_RELEASES_*` repo vars/secrets must be present before any release workflow can run.
+- Release publishing and stable activation use the separate generic
+  `RELEASE_PUBLISH_S3_*` and `RELEASE_ACTIVATE_S3_*` capabilities.
 - Consumer validation must use installed release assets, not `cargo install --path`, once a release exists.
 
 ## Update / Compatibility Policy
@@ -40,22 +42,33 @@ The TCP broker is local service discovery and runtime registry for host processe
 - No internal migrations: there is no `state v1 → v2` translator, no schema-version field, no auto-rewrite of user `sidecar.toml`. Older configs that no longer parse must hard-fail with an error pointing the user at the latest README.
 - The escape hatch on any breakage is fixed and must always work: `sidecar reset` (kill stamped processes) → `manage.sh|ps1 uninstall` → reinstall the latest release → re-author `sidecar.toml` per the latest README. This single path replaces every other compatibility guarantee.
 - Versioning is `0.Y.Z` indefinitely. A `Y` bump is breaking by default; pre-1.0 SemVer carries the unstable contract for us — we do not promote to `1.0.0`.
-- The update mechanism itself follows the same rule: the startup check is best-effort and silently swallows every failure mode (network, parse, clock, missing curl); `sidecar update` is a thin wrapper around the manager (`manage.sh|ps1 update`) — it does not decompress, verify, or roll back.
+- The update mechanism itself follows the same rule: the startup check is
+  stable-only, best-effort, and silently swallows every failure mode (network,
+  parse, clock, missing curl). `sidecar update` is available only to a canonical
+  stable default-seat install and delegates to the root stable manager.
+  Non-stable and isolated exact installs are replaced only by another explicit
+  exact manager invocation.
 
 ## Build-time Stamps
 
-`crates/cli` reads three optional build-time env vars via `option_env!` and bakes them into the binary; `.forgejo/scripts/release/assets/package.{sh,ps1}` set all three from the release workflow:
+`crates/cli` reads three optional build-time env vars via `option_env!` and
+bakes them into the binary; Plumb sets all three while building a declared
+release target:
 
 - `SIDECAR_BUILD_VERSION` → `cli::version()` (defaults to `v<CARGO_PKG_VERSION>` for dev builds).
-- `SIDECAR_BUILD_CHANNEL` → `cli::channel()` (`stable` / `beta` / `dev`; defaults to `dev`, which disables the startup check and `update` subcommand).
-- `SIDECAR_BUILD_PUBLIC_URL` → fallback for the update check / subcommand when the runtime env var is absent.
+- `SIDECAR_BUILD_CHANNEL` → `cli::channel()` (the exact release channel;
+  defaults to `dev`, which disables the startup check and `update` subcommand).
+- `SIDECAR_BUILD_AUTHORITY` → fallback for the update check / subcommand when the runtime env var is absent.
 
-The release workflows pass `RELEASE_CHANNEL` (`stable` for `release.yml`, `beta` for `release-beta.yml`) and the repo var `SIDECAR_RELEASES_PUBLIC_URL` into the build matrix steps so that every published binary is self-aware.
+The reusable release workflow passes its exact channel, version, commit, and
+declared authority into Plumb so every published binary is self-aware. The
+canonical authority is read from `plumb.toml`.
 
 ## Runtime Update Env Vars
 
 - `SIDECAR_RELEASES_PUBLIC_URL` — overrides the build-time stamp for both check and update.
-- `SIDECAR_CHANNEL` — overrides the build-time channel (e.g. flip a stable build to watch beta).
+- `SIDECAR_CHANNEL` — overrides the build-time channel; only `stable` enables
+  the update check and update subcommand.
 - `SIDECAR_NO_UPDATE_CHECK=1` — skip the startup check entirely.
 - `SIDECAR_UPDATE_TTL=<n>[smhd]` — startup-check cache TTL; default `24h`, `0` = always fetch.
 
@@ -98,7 +111,12 @@ There is no `--keep-data` or confirm prompt by design — predictability and ide
 
 ## Installer Verbs
 
-Root `manage.{sh,ps1}` accept exactly: `install`, `update`, `uninstall`. There is no `upgrade` alias. They default to `https://releases.sidecar.perish.uk` as the public release asset root, and `SIDECAR_RELEASES_PUBLIC_URL` / `--public-url` override it. The CLI's `sidecar update` subcommand downloads the canonical manager for the current channel and execs it with the `update` verb.
+Root `manage.{sh,ps1}` accept exactly: `install`, `update`, `uninstall`. There is
+no `upgrade` alias. They default to `https://releases.sidecar.perish.uk` as the
+public release asset root, and `SIDECAR_RELEASES_PUBLIC_URL` / `--public-url`
+override it. The root managers are stable-owned. The CLI's `sidecar update`
+subcommand downloads that root manager only for a canonical stable default-seat
+install; it never follows a non-stable channel manager.
 
 ## Repo-local Support
 
@@ -115,7 +133,6 @@ Ectropy, and Plumb. Current support commands:
 - `runseal :land` — lands the current clean topic branch through Forgejo,
   waits for checks on the exact pushed head SHA, squash-merges that SHA, syncs
   `main`, and deletes the branch. `--dry-run` prints the plan without mutation.
-- `runseal :release` — dispatches the stable or beta Forgejo release workflow.
 
 ## Constitution
 
@@ -144,13 +161,14 @@ must pass before anything lands:
 
 - `crates/core/`: `Manifest` config, diagnostics, plan, socket parser, stamp protocol, process discovery, inspect client.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
-- `manage.sh` and `manage.ps1`: public install/update/uninstall manager entrypoints uploaded as release assets.
+- `plumb.toml`: product authority, binaries, and supported targets consumed by
+  stable Plumb.
 - `docs/`: durable design notes for planned architecture changes, including the TCP broker runtime direction.
-- `.runseal/`: thin runseal wrapper entrypoints for guard, init, land, and
-  release.
+- `.runseal/`: thin runseal wrapper entrypoints for guard, init, and land.
 - `ectropy.toml`: the Plumb-managed syntax policy Ectropy executes over
   `crates/` and `docs/`.
-- `.forgejo/scripts/`: workflow-only release helpers.
+- `.forgejo/workflows/release-{exact,stable}.yml`: thin callers into the shared
+  binary release workflow.
 
 ## Standard Workflow
 
@@ -266,14 +284,22 @@ The implementation is `crates/core/src/inspect.rs`. The CLI orchestration is `co
 
 ## Release
 
-- `manage.sh` and `manage.ps1` leave exactly one version under the install root.
-  Earlier versions are removed once the new binary is linked and answers
-  `--version`, and each removal is named. The versioned root was never a
-  rollback cache: `install --version <older>` refetches, so nothing ever read
-  what accumulated there.
+- Canonical-authority stable owns the root managers, moving pointer, default
+  install root, and default bin directory. It is the only release admitted to
+  those consensus surfaces.
+- Every non-stable channel requires an exact version plus explicit install and
+  bin paths disjoint from stable. Non-stable has no pointer or activation.
+- `plumb.toml` is the product-owned release declaration. Stable Plumb builds
+  and inspects archives, generates managers and records, seals exact objects,
+  performs public readback, and owns cross-platform manager smoke.
+- Publishing and stable activation use separate commands and credentials.
+  Exact seals are create-only; stable activation compare-and-swaps the sole
+  moving pointer after updating both generated root managers.
+- Stable is rebuilt from the same commit as one exact candidate and embeds its
+  complete seal plus digest as proof.
 - A stable release refuses to publish without
   `docs/CHANGELOG/v<version>/{en,zh}/{INDEX.md,MIGRATION.md}`, enforced by the
-  `Changelog` step in `release-stable.yml` before anything irreversible.
+  stable capsule compiler before anything irreversible.
   `plumb doctor` does not check this: a changelog is owed by a release, not by a
   working tree. A release requiring nothing of anyone still writes MIGRATION.md
   saying so. See `plumb/docs/changelog.md`.

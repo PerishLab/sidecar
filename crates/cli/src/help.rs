@@ -42,7 +42,8 @@ Safety:
   stop/reset are signal-first and observe sidecar-owned pids; add --force to
   kill after graceful waits. reset removes project state; add --all to also
   remove global state.
-  update delegates to the released manager. Dev builds cannot self-update.
+  update delegates to the root manager from a canonical stable default seat.
+  Dev, non-stable, and isolated exact builds cannot self-update.
 
 Exit shape:
   0 on success. 1 on config, diagnostic, lifecycle, inspect, or update failure.
