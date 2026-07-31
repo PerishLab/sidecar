@@ -118,21 +118,17 @@ override it. The root managers are stable-owned. The CLI's `sidecar update`
 subcommand downloads that root manager only for a canonical stable default-seat
 install; it never follows a non-stable channel manager.
 
-## Repo-local Support
+## Repo-local Isolation
 
-`runseal.toml` and `.runseal/wrappers/*` are thin repo-local operator
-entrypoints for support tasks that do not belong in the installable `sidecar`
-product binary. Shared operator logic belongs in Sealkit; `.runseal` contains
-no dedicated TypeScript tests. Local development requires `runseal`, `deno`,
-Ectropy, and Plumb. Current support commands:
+`runseal.toml` is an env-only profile for repository-local material. It maps
+the `RUNSEAL_REPO_*` and `SIDECAR_REPO_*` values into ignored `.local/`
+seats and carries no command or lifecycle behavior.
 
-- `runseal :init` — idempotent post-clone validator for tools, repository
-  entrypoints, and versioned Git hooks.
-- `runseal :guard` — the full local gate: fmt, clippy, tests, Deno checks,
-  `plumb doctor .`, and errors-only `ectropy .`.
-- `runseal :land` — lands the current clean topic branch through Forgejo,
-  waits for checks on the exact pushed head SHA, squash-merges that SHA, syncs
-  `main`, and deletes the branch. `--dry-run` prints the plan without mutation.
+Use `runseal profile` to validate the resolved profile and
+`runseal : <command> [args...]` when a command needs those environment values.
+Generic guard, init, land, and release behavior belongs to the workshop
+substrate or canonical workflow. This repository carries no Deno, Sealkit,
+filesystem wrapper, or repository-owned Git hook.
 
 ## Constitution
 
@@ -145,7 +141,7 @@ must pass before anything lands:
   grants.
 - `plumb doctor .` — repository layout, operator, workflow, and policy
   enforcement.
-- `ectropy .` — errors fail the repository; warnings remain visible.
+- `ectropy .` — every finding fails; there is no warning or debt mode.
 
 ## Common Commands
 
@@ -155,7 +151,8 @@ must pass before anything lands:
 - CLI smoke: `cargo run --locked -p cli -- doctor --config examples/minimal.toml`
 - Plan: `cargo run --locked -p cli -- plan --config examples/minimal.toml --format json`
 - Repository check: `plumb doctor . && ectropy .`
-- Full gate: `runseal :guard`
+- Profiled test: `runseal : cargo test --locked --workspace`
+- Full gate: run every validation command above plus `plumb doctor . && ectropy .`
 
 ## Repository Shape
 
@@ -164,7 +161,8 @@ must pass before anything lands:
 - `plumb.toml`: product authority, binaries, and supported targets consumed by
   stable Plumb.
 - `docs/`: durable design notes for planned architecture changes, including the TCP broker runtime direction.
-- `.runseal/`: thin runseal wrapper entrypoints for guard, init, and land.
+- `runseal.toml`: the env-only per-run profile.
+- `.runseal/resources/`: committed inert profile material when needed.
 - `ectropy.toml`: the Plumb-managed syntax policy Ectropy executes over
   `crates/` and `docs/`.
 - `.forgejo/workflows/release-{exact,stable}.yml`: thin callers into the shared
@@ -174,15 +172,17 @@ must pass before anything lands:
 
 ### Initialize
 
-After cloning or when the toolchain looks stale, run:
+After cloning or when the toolchain looks stale, validate the profile and
+repository:
 
 ```bash
-runseal :init
+runseal profile
+plumb doctor .
+ectropy .
 ```
 
-It validates the required tools and repository entrypoints, then installs the
-versioned Git hooks. The gates are `runseal :guard` before landing and the
-`guard` workflow in CI.
+There is no initialization wrapper and no repository-owned Git hook. The gate
+is the direct command set below and the canonical `guard` workflow in CI.
 
 ### Branch Names
 
@@ -199,27 +199,20 @@ Subject: `<area>: <imperative summary>` on one line, ideally <= 72 characters. T
 
 ### Pre-PR Checks
 
-Every PR must pass the guard before review:
+Every PR must pass the direct guard before review:
 
 ```bash
-runseal :guard
-```
-
-It runs, in order:
-
-```bash
+plumb doctor .
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo check --locked --workspace --all-targets --release
 cargo test --locked --workspace
-deno fmt --check .runseal
-deno check --config .runseal/deno.json --lock .runseal/deno.lock --frozen=true .runseal/wrappers/*.ts
-plumb doctor .
 ectropy .
 ```
 
-CI reruns the same wrapper: `.forgejo/workflows/guard.yml` installs Ectropy and
-Plumb through the shared actions, then executes `.runseal/wrappers/guard.ts` on
-every PR and every push to `main`.
+Use `runseal : <command>` only when that command needs the repo-local profile;
+the guard itself has no ambient local-material dependency. CI runs the same
+commands directly after installing stable Ectropy and Plumb.
 
 ### PR Descriptions
 
@@ -244,15 +237,9 @@ Add `## Compatibility` when a manifest field, CLI flag, protocol field, output s
 required merge gate is the `guard` check from `.forgejo/workflows/guard.yml`.
 Required approvals are intentionally `0`.
 
-From a clean topic branch, default to landing with:
-
-```bash
-runseal :land
-```
-
-It pushes the branch, creates or reuses the PR, records the exact pushed head
-SHA, polls the Forgejo checks on that SHA until every one succeeds,
-squash-merges only the audited commit, syncs `main`, and deletes the branch.
+Landing is workshop control-plane behavior owned outside this repository. Use
+the current substrate operator from the managed task environment. Do not add a
+repository wrapper or Git hook to make landing locally discoverable.
 
 ## Stamp args protocol
 
@@ -297,6 +284,9 @@ The implementation is `crates/core/src/inspect.rs`. The CLI orchestration is `co
   moving pointer after updating both generated root managers.
 - Stable is rebuilt from the same commit as one exact candidate and embeds its
   complete seal plus digest as proof.
+- Release branches run the canonical guard workflow. Shared Actions consumes
+  the three exact commit-status contexts instead of executing a repository
+  wrapper during publication.
 - A stable release refuses to publish without
   `docs/CHANGELOG/v<version>/{en,zh}/{INDEX.md,MIGRATION.md}`, enforced by the
   stable capsule compiler before anything irreversible.

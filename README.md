@@ -112,21 +112,19 @@ stable has a moving pointer and root manager.
 
 ## Local Smoke
 
-After cloning, initialize the local checkout:
+After cloning, validate the profile and repository shape:
 
 ```sh
-runseal :init
+runseal profile
+plumb doctor .
 ```
-
-Local initialization expects `flavor v0.3.3+` and `runseal v0.6.0+` to be
-available.
 
 Run the fast local smoke path:
 
 ```sh
 cargo run --locked -p cli -- doctor --config examples/minimal.toml
 cargo run --locked -p cli -- plan   --config examples/minimal.toml --format json
-flavor check --root . --config flavor.toml
+runseal : cargo test --locked --workspace
 ```
 
 ## Release
