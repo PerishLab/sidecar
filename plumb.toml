@@ -11,10 +11,10 @@ targets = [
 
 [[document]]
 strategy = "agent"
-source = [{ path = ".", seal = "b209f9fa0dc4a7179128e68bdfe3ec2366373b95d660b2b4c90171ef09d2ad98" }]
+source = [{ path = ".", seal = "6df5c9dfce45ef9c829622695a6b3cd01318c765794185f4b3449c6c41c8aa9b" }]
 target-seal = "8f9dd700a875cd5aa401fcb817963f3f5b1e7a753b00b80a37990e54d94ec1ba"
 
 [[document]]
 strategy = "design"
-source = [{ path = ".", seal = "b209f9fa0dc4a7179128e68bdfe3ec2366373b95d660b2b4c90171ef09d2ad98" }]
+source = [{ path = ".", seal = "6df5c9dfce45ef9c829622695a6b3cd01318c765794185f4b3449c6c41c8aa9b" }]
 target-seal = "af1a6252413ef6f86a277272f4099266b15ae186b3c385889eebcedd533ff9f9"
