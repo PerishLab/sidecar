@@ -39,8 +39,11 @@ The TCP broker is local service discovery and runtime registry for host processe
 ## Update / Compatibility Policy
 
 - The CLI never carries compatibility shims. Renaming or reshaping `Manifest`, CLI flags, the inspect protocol, the stamp protocol, or the installer surface is a hard cutover — no aliases, no deprecation warnings, no best-effort parsing of older shapes.
-- No internal migrations: there is no `state v1 → v2` translator, no schema-version field, no auto-rewrite of user `sidecar.toml`. Older configs that no longer parse must hard-fail with an error pointing the user at the latest README.
-- The escape hatch on any breakage is fixed and must always work: `sidecar reset` (kill stamped processes) → `manage.sh|ps1 uninstall` → reinstall the latest release → re-author `sidecar.toml` per the latest README. This single path replaces every other compatibility guarantee.
+- No internal migrations: there is no state translator, schema-version field,
+  or auto-rewrite of `sidecar.toml`. Older configs hard-fail and move through
+  the release-local CHANGELOG contract.
+- The fixed escape hatch is reset, manager uninstall, reinstall latest stable,
+  then re-author the manifest from the current command and example surface.
 - Versioning is `0.Y.Z` indefinitely. A `Y` bump is breaking by default; pre-1.0 SemVer carries the unstable contract for us — we do not promote to `1.0.0`.
 - The update mechanism itself follows the same rule: the startup check is
   stable-only, best-effort, and silently swallows every failure mode (network,
@@ -107,7 +110,8 @@ It:
 3. Removes `<data_home>/projects/<namespace>/` (manifest `data_dir` honored).
 4. With `--all`: also removes `<data_home>/state/` (wipes update cache, etc.).
 
-There is no `--keep-data` or confirm prompt by design — predictability and idempotency are reset's contract. Forceful cleanup is still opt-in through `--force`; it is an operator convenience, not the native lifecycle contract. The install root and bin link are out of scope for `reset` (they belong to `manage.sh|ps1 uninstall`). The fully-recovered state is: `sidecar reset --all --force` when graceful termination is insufficient → `manage.sh|ps1 uninstall` → reinstall latest → re-author `sidecar.toml` per the latest README.
+There is no `--keep-data` or confirm prompt. Forceful cleanup remains explicit.
+The install root and bin link belong to the generated manager, not reset.
 
 ## Installer Verbs
 
@@ -136,7 +140,7 @@ Ectropy owns pure AST syntax execution. Plumb owns repository shape, the
 canonical `ectropy.toml` policy, and which paths receive syntax grants. Both
 must pass before anything lands:
 
-- `ectropy.toml` — scan roots (`crates/**/*.rs`, `docs/**/*.md`), module roots,
+- `ectropy.toml` — Rust scan roots, module roots,
   limits, the comment ban, the single-word rule, and explicit test/environment
   grants.
 - `plumb doctor .` — repository layout, operator, workflow, and policy
@@ -160,11 +164,10 @@ must pass before anything lands:
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
 - `plumb.toml`: product authority, binaries, and supported targets consumed by
   stable Plumb.
-- `docs/`: durable design notes for planned architecture changes, including the TCP broker runtime direction.
+- `DESIGN.md`: current broker topology and authority boundaries.
 - `runseal.toml`: the env-only per-run profile.
 - `.runseal/resources/`: committed inert profile material when needed.
-- `ectropy.toml`: the Plumb-managed syntax policy Ectropy executes over
-  `crates/` and `docs/`.
+- `ectropy.toml`: the Plumb-managed syntax policy Ectropy executes over source.
 - `.forgejo/workflows/release-{exact,stable}.yml`: thin callers into the shared
   binary release workflow.
 
@@ -292,4 +295,4 @@ The implementation is `crates/core/src/inspect.rs`. The CLI orchestration is `co
   stable capsule compiler before anything irreversible.
   `plumb doctor` does not check this: a changelog is owed by a release, not by a
   working tree. A release requiring nothing of anyone still writes MIGRATION.md
-  saying so. See `plumb/docs/changelog.md`.
+  saying so. Follow the release-local contract under `docs/CHANGELOG`.

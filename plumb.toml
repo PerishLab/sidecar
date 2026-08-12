@@ -8,3 +8,13 @@ targets = [
   "x86_64-apple-darwin",
   "x86_64-pc-windows-msvc",
 ]
+
+[[document]]
+strategy = "agent"
+source = [{ path = ".", seal = "b209f9fa0dc4a7179128e68bdfe3ec2366373b95d660b2b4c90171ef09d2ad98" }]
+target-seal = "8f9dd700a875cd5aa401fcb817963f3f5b1e7a753b00b80a37990e54d94ec1ba"
+
+[[document]]
+strategy = "design"
+source = [{ path = ".", seal = "b209f9fa0dc4a7179128e68bdfe3ec2366373b95d660b2b4c90171ef09d2ad98" }]
+target-seal = "af1a6252413ef6f86a277272f4099266b15ae186b3c385889eebcedd533ff9f9"
