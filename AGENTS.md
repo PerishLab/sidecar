@@ -127,8 +127,8 @@ seats and carries no command or lifecycle behavior.
 Use `runseal profile` to validate the resolved profile and
 `runseal : <command> [args...]` when a command needs those environment values.
 Generic guard, init, land, and release behavior belongs to the workshop
-substrate or canonical workflow. This repository carries no Deno, Sealkit,
-filesystem wrapper, or repository-owned Git hook.
+substrate or canonical workflow. This repository carries no Deno, filesystem
+wrapper, or repository-owned Git hook.
 
 ## Constitution
 
