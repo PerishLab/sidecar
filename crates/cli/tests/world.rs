@@ -15,7 +15,7 @@ root = "."
 
 [[sidecars]]
 name = "world"
-command = "COMMAND"
+command = 'COMMAND'
 cwd = "."
 mode = "probe"
 EXTRA
