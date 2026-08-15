@@ -76,6 +76,17 @@ The broker is runtime discovery infrastructure, not a business endpoint.
 Project inspect remains a target-local single-event bridge. Sidecar owns the
 line-delimited envelope and timeout; the project owns event names and schemas.
 
+The wire carries one line per direction:
+
+```
+request:  {"kind":"event","id":"...","verb":"...","payload":<json>}
+response: {"kind":"event_response","id":"...","payload":<json>}
+       or {"kind":"event_error","id":"...","error":{"code":"...","message":"..."}}
+```
+
+Inspect called without an explicit payload sends `{}` rather than `null`; a
+typed project protocol reads that as the unit event shape.
+
 Unix sockets are canonical for inspect. TCP is reserved for fallback and
 compatibility probes. Process status reports Sidecar-known identity, pids,
 readiness, and broker facts; it does not claim product health.

@@ -2,6 +2,10 @@
 product = "sidecar"
 authority = "https://releases.sidecar.perish.uk"
 binaries = ["sidecar"]
+[release.npm]
+registry = "https://git.perish.top/api/packages/PerishLab/npm/"
+package = "@perish/sidecar"
+
 targets = [
   "x86_64-unknown-linux-gnu",
   "aarch64-apple-darwin",

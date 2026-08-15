@@ -1,0 +1,25 @@
+{
+	"name": "@perish/sidecar",
+	"version": "0.0.0",
+	"description": "The sidecar grant announcement, read as this language reads it",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/lib.d.ts",
+			"default": "./dist/lib.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"test": "vitest run"
+	},
+	"devDependencies": {
+		"@types/node": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

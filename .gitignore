@@ -9,3 +9,5 @@ __pycache__/
 .env
 .forgejo/release.env
 .task/
+node_modules/
+dist/
