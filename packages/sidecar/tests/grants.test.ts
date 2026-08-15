@@ -26,37 +26,38 @@ function words(): Record<string, Spec> {
 	return stated("sidecar.schema.jsonc").words;
 }
 
-function idiom(term: string): string {
-	return term
-		.split("_")
-		.map((part, index) =>
-			index === 0 ? part : part[0].toUpperCase() + part.slice(1),
-		)
-		.join("");
-}
-
 function render(form: string, raw: string): string | number {
 	return form === "decimal" ? Number(raw) : raw;
 }
 
-function wanted(
-	one: Case,
-	forms: Record<string, string>,
-): Record<string, unknown> {
-	const want: Record<string, unknown> = {};
-	for (const [term, value] of Object.entries(one.expects)) {
-		if (value !== null) want[idiom(term)] = render(forms[term], value);
-	}
-	return want;
+function nest(term: string, value: string | number): Record<string, unknown> {
+	const parts = term.split("_").reverse();
+	let held: unknown = value;
+	for (const part of parts) held = { [part]: held };
+	return held as Record<string, unknown>;
 }
 
-test("every declared word is read and rendered by its form", () => {
+function merge(
+	into: Record<string, unknown>,
+	from: Record<string, unknown>,
+): void {
+	for (const [key, value] of Object.entries(from)) {
+		const seat = into[key];
+		if (seat && typeof seat === "object" && typeof value === "object") {
+			merge(seat as Record<string, unknown>, value as Record<string, unknown>);
+			continue;
+		}
+		into[key] = value;
+	}
+}
+
+test("every declared word is read, nested by its term and typed by its form", () => {
 	const held: Record<string, string> = {};
 	const want: Record<string, unknown> = {};
 	for (const [word, spec] of Object.entries(words())) {
 		const raw = spec.form === "decimal" ? "4287" : "seat";
 		held[word] = raw;
-		want[idiom(spec.term)] = render(spec.form, raw);
+		merge(want, nest(spec.term, render(spec.form, raw)));
 	}
 	expect(grants(held)).toEqual(want);
 });
@@ -67,6 +68,10 @@ test("the fixture cases conform", () => {
 	const cases: Case[] = stated("sidecar.fixture.jsonc").cases;
 	expect(cases.length).toBeGreaterThan(0);
 	for (const one of cases) {
-		expect(grants(one.environment), one.name).toEqual(wanted(one, forms));
+		const want: Record<string, unknown> = {};
+		for (const [term, value] of Object.entries(one.expects)) {
+			if (value !== null) merge(want, nest(term, render(forms[term], value)));
+		}
+		expect(grants(one.environment), one.name).toEqual(want);
 	}
 });

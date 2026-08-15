@@ -1,6 +1,10 @@
+export type Inspect = {
+	socket: string;
+};
+
 export type Grants = {
 	port?: number;
-	inspectSocket?: string;
+	inspect?: Inspect;
 	broker?: string;
 };
 
@@ -11,7 +15,7 @@ export function grants(held: Held): Grants {
 	const port = decimal(held.SIDECAR_PORT);
 	if (port !== undefined) said.port = port;
 	const socket = endpoint(held.SIDECAR_INSPECT_SOCKET);
-	if (socket !== undefined) said.inspectSocket = socket;
+	if (socket !== undefined) said.inspect = { socket };
 	const broker = endpoint(held.SIDECAR_BROKER);
 	if (broker !== undefined) said.broker = broker;
 	return said;

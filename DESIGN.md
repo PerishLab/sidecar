@@ -40,6 +40,11 @@ asserts that the set of words sidecar actually announces equals the set the
 schema declares, and that each value matches its declared form, so the file
 cannot drift from the emitter.
 
+A term's underscores are segments, and no term may be a stem of another. A
+binding is free to render segments as nesting -- `inspect_socket` reads as
+`inspect.socket` where that is idiomatic -- so `broker` beside `broker_endpoint`
+would ask one name to be both a leaf and a branch.
+
 `sidecar.fixture.jsonc` is what a language binding is checked against. The
 fixture, not the first binding written, is the contract's truth: each case gives
 an environment and the grants a conforming binding must expose from it. A

@@ -1,8 +1,11 @@
 {
 	"name": "sidecar-workspace",
 	"private": true,
-	"packageManager": "pnpm@10.0.0",
+	"packageManager": "pnpm@11.13.0",
 	"devDependencies": {
 		"@biomejs/biome": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
 	}
 }
