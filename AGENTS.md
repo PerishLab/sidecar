@@ -167,9 +167,9 @@ must pass before anything lands:
 - `crates/core/`: `Manifest` config, diagnostics, plan, socket parser, stamp protocol, process discovery, inspect client.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`logs`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
 - `crates/cli/src/world.rs`: the unpublished `world` probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
-- `plumb.toml`: product authority, binaries, and supported targets consumed by
-  stable Plumb.
-- `DESIGN.md`: current broker topology and authority boundaries.
+- `sidecar.schema.jsonc` and `sidecar.fixture.jsonc`: the grant announcement vocabulary and the cases every language binding is checked against. The schema is load-bearing, not descriptive; `crates/cli/tests/world.rs` asserts the words sidecar announces are exactly the words it declares.
+- `plumb.toml`: product authority, binaries, and supported targets, for stable Plumb.
+- `DESIGN.md`: broker topology, the grant contract, and authority boundaries.
 - `runseal.toml`: the env-only per-run profile.
 - `.runseal/resources/`: committed inert profile material when needed.
 - `ectropy.toml`: the Plumb-managed syntax policy Ectropy executes over source.

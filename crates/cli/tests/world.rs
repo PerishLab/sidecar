@@ -1,3 +1,6 @@
+mod common;
+
+use common::schema;
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fs;
@@ -15,6 +18,7 @@ name = "world"
 command = "COMMAND"
 cwd = "."
 mode = "probe"
+EXTRA
 "#;
 
 #[test]
@@ -22,7 +26,7 @@ fn residue() {
     let seat = seat("residue");
     let probe = probe();
     let bare = flatten(&bare(&probe, &seat));
-    let held = flatten(&held(&probe, &seat));
+    let held = flatten(&held(&probe, &seat, ""));
     let mut moved: Vec<String> = Vec::new();
     for key in bare.keys().chain(held.keys()) {
         if bare.get(key) != held.get(key) && !moved.contains(key) {
@@ -83,11 +87,13 @@ fn bare(probe: &Path, seat: &Path) -> Value {
     read(&sink)
 }
 
-fn held(probe: &Path, seat: &Path) -> Value {
+fn held(probe: &Path, seat: &Path, extra: &str) -> Value {
     let config = seat.join("sidecar.toml");
     fs::write(
         &config,
-        MANIFEST.replace("COMMAND", &probe.display().to_string()),
+        MANIFEST
+            .replace("COMMAND", &probe.display().to_string())
+            .replace("EXTRA", extra),
     )
     .expect("manifest");
     let home = seat.join("home");
@@ -173,5 +179,51 @@ fn join(path: &str, key: &str) -> String {
         key.to_string()
     } else {
         format!("{path}.{key}")
+    }
+}
+
+#[test]
+fn words() {
+    let seat = seat("words");
+    let probe = probe();
+    let world = held(
+        &probe,
+        &seat,
+        "port = 0\ninspect_socket = \"unix:///tmp/sidecar-world.sock\"",
+    );
+    let said = announced(&world);
+    let schema = schema();
+    let mut declared: Vec<&String> = schema.keys().collect();
+    declared.sort();
+    let mut heard: Vec<&String> = said.keys().collect();
+    heard.sort();
+    assert_eq!(
+        heard, declared,
+        "the words sidecar announces and the words sidecar.schema.jsonc declares must be the same set"
+    );
+    for (word, value) in &said {
+        let form = schema[word]["form"].as_str().unwrap_or_default();
+        assert!(
+            shaped(form, value),
+            "{word} is declared as {form} but announced {value:?}"
+        );
+    }
+}
+
+fn announced(world: &Value) -> BTreeMap<String, String> {
+    world["env"]
+        .as_object()
+        .expect("probe env")
+        .iter()
+        .filter(|(key, _)| key.starts_with("SIDECAR_"))
+        .filter_map(|(key, value)| Some((key.clone(), value.as_str()?.to_string())))
+        .collect()
+}
+
+fn shaped(form: &str, value: &str) -> bool {
+    match form {
+        "decimal" => value.parse::<u16>().is_ok(),
+        "endpoint" => !value.is_empty(),
+        _ => false,
     }
 }

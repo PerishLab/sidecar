@@ -1,0 +1,31 @@
+// The grant announcement vocabulary. Sidecar owns what a grant is and how it is
+// announced; a target owns how it is used. This file is the whole contract.
+//
+// A word reaches a target as an environment variable. Nothing else is promised:
+// no ordering, no framing, no encoding beyond the stated form. Every language
+// binding reads these names and renders them in its own idiom.
+//
+// Comments here are whole-line // only, so a reader may strip them by that rule.
+{
+  "schemaVersion": 1,
+  "words": {
+    "SIDECAR_PORT": {
+      "term": "port",
+      "form": "decimal",
+      "means": "A loopback TCP port sidecar leased for this target and will not lease to another target in the same namespace while this one lives.",
+      "absent": "No port was granted. Not zero, not a default, not a hint to pick one."
+    },
+    "SIDECAR_INSPECT_SOCKET": {
+      "term": "inspect_socket",
+      "form": "endpoint",
+      "means": "The address a target's inspect server is expected to listen on, as declared by the manifest and expanded by sidecar.",
+      "absent": "No inspect socket was granted. The target owes no inspect server."
+    },
+    "SIDECAR_BROKER": {
+      "term": "broker",
+      "form": "endpoint",
+      "means": "The endpoint of the project and namespace scoped runtime broker this target may register with and discover peers through.",
+      "absent": "No broker was granted. A target that needs one must fail rather than guess an address."
+    }
+  }
+}
