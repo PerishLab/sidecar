@@ -10,7 +10,7 @@ const TTL: u64 = 24 * 60 * 60;
 const FETCH: u64 = 3;
 const INSTALL: u64 = 30;
 
-pub fn notice(current: &str, build: &str) {
+pub fn notice(current: &str, build: &str, home: Option<&Path>) {
     let channel = channel(build);
     if !enabled(&channel) {
         return;
@@ -21,7 +21,7 @@ pub fn notice(current: &str, build: &str) {
     if !paths::canonical(&base) || !paths::installed() {
         return;
     }
-    let Some(latest) = latest(&base, &channel, ttl()) else {
+    let Some(latest) = latest(&base, &channel, ttl(), home) else {
         return;
     };
     if newer(&latest, current) {
@@ -153,8 +153,8 @@ fn duration(raw: &str) -> Option<Duration> {
         .map(|n| Duration::from_secs(n * mult))
 }
 
-fn latest(base: &str, channel: &str, ttl: Duration) -> Option<String> {
-    let cache = store().map(|d| d.join(format!("update-{channel}.json")));
+fn latest(base: &str, channel: &str, ttl: Duration, home: Option<&Path>) -> Option<String> {
+    let cache = store(home).map(|d| d.join(format!("update-{channel}.json")));
     let now = now();
     if let Some(path) = &cache
         && let Some(latest) = fresh(path, channel, ttl)
@@ -222,8 +222,8 @@ fn write(path: &Path, channel: &str, checked: u64, latest: &str) -> std::io::Res
     fs::write(path, body.to_string())
 }
 
-fn store() -> Option<PathBuf> {
-    Some(paths::home(None).join("state"))
+fn store(home: Option<&Path>) -> Option<PathBuf> {
+    Some(paths::home(home).join("state"))
 }
 
 fn fetch(url: &str, timeout: u64) -> Option<String> {

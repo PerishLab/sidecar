@@ -4,6 +4,7 @@ use crate::update;
 use crate::{broker, commands, output};
 use clap::{Parser, Subcommand};
 use sidecar_core::Severity;
+use std::path::Path;
 use std::time::Duration;
 
 pub(crate) mod default {
@@ -109,18 +110,11 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
     };
     let global = &cli.global;
 
-    if let Some(home) = &global.home {
-        unsafe { std::env::set_var("SIDECAR_DATA_HOME", home) };
-    }
-    if let Some(project) = &global.project {
-        unsafe { std::env::set_var("SIDECAR_PROJECT", project) };
-    }
-
     if !matches!(
         verb,
         Verb::Help | Verb::Version | Verb::Update | Verb::Runtime { .. }
     ) {
-        update::notice(version(), channel());
+        update::notice(version(), channel(), global.home.as_deref().map(Path::new));
     }
 
     match verb {
