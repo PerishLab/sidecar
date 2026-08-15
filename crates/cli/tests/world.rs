@@ -79,7 +79,7 @@ fn bare(probe: &Path, seat: &Path) -> Value {
         .stderr(Stdio::from(stderr))
         .status()
         .expect("bare spawn");
-    assert!(status.success(), "bare probe failed");
+    assert!(status.success(), "the bare probe exited with {status}");
     read(&sink)
 }
 
@@ -91,15 +91,21 @@ fn held(probe: &Path, seat: &Path) -> Value {
     )
     .expect("manifest");
     let home = seat.join("home");
-    let status = Command::new(env!("CARGO_BIN_EXE_sidecar"))
+    let start = Command::new(env!("CARGO_BIN_EXE_sidecar"))
         .args(["start", "--config"])
         .arg(&config)
         .arg("--data-home")
         .arg(&home)
         .current_dir(seat)
-        .status()
+        .output()
         .expect("sidecar start");
-    assert!(status.success(), "sidecar start failed");
+    assert!(
+        start.status.success(),
+        "sidecar start exited with {}\nstdout: {}\nstderr: {}",
+        start.status,
+        String::from_utf8_lossy(&start.stdout).trim(),
+        String::from_utf8_lossy(&start.stderr).trim()
+    );
     let sink = home
         .join("projects")
         .join("world")
