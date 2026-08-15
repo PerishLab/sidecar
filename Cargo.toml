@@ -2,6 +2,7 @@
 members = [
   "crates/cli",
   "crates/core",
+  "crates/world",
 ]
 resolver = "2"
 
@@ -13,6 +14,7 @@ repository = "https://git.perish.top/PerishFire/sidecar"
 [workspace.dependencies]
 plumb = { version = "0", registry = "perish" }
 clap = { version = "4", features = ["derive"] }
+libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sidecar-core = { package = "core", path = "crates/core" }

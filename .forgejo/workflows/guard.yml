@@ -50,6 +50,8 @@ jobs:
         run: cargo fetch --locked
       - name: Build
         run: cargo build --locked --workspace
+      - name: Test
+        run: cargo test --locked --workspace
 
   guard-windows:
     runs-on: windows
@@ -60,3 +62,5 @@ jobs:
         run: cargo fetch --locked
       - name: Build
         run: cargo build --locked --workspace
+      - name: Test
+        run: cargo test --locked --workspace

@@ -134,6 +134,15 @@ Generic guard, init, land, and release behavior belongs to the workshop
 substrate or canonical workflow. This repository carries no Deno, filesystem
 wrapper, or repository-owned Git hook.
 
+## Spawn Residue
+
+`crates/cli/tests/world.rs` spawns the probe twice — bare, and through sidecar —
+and asserts that the set of differing observations equals a declared residue
+exactly. Equality, not containment: a smaller difference fails too, because that
+means the declaration is wrong rather than the spawn improved. Every entry the
+declaration carries beyond `pid`, `ppid`, and the process group is a debt this
+repository still owes.
+
 ## Constitution
 
 Ectropy owns pure AST syntax execution. Plumb owns repository shape, the
@@ -162,6 +171,7 @@ must pass before anything lands:
 
 - `crates/core/`: `Manifest` config, diagnostics, plan, socket parser, stamp protocol, process discovery, inspect client.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
+- `crates/world/`: unpublished probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
 - `plumb.toml`: product authority, binaries, and supported targets consumed by
   stable Plumb.
 - `DESIGN.md`: current broker topology and authority boundaries.
