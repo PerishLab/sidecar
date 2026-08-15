@@ -98,20 +98,24 @@ fn held(probe: &Path, seat: &Path, extra: &str) -> Value {
     )
     .expect("manifest");
     let home = seat.join("home");
-    let start = Command::new(env!("CARGO_BIN_EXE_sidecar"))
+    let trace = seat.join("start.log");
+    let file = fs::File::create(&trace).expect("start sink");
+    let stderr = file.try_clone().expect("start stderr");
+    let status = Command::new(env!("CARGO_BIN_EXE_sidecar"))
         .args(["start", "--config"])
         .arg(&config)
         .arg("--data-home")
         .arg(&home)
         .current_dir(seat)
-        .output()
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(file))
+        .stderr(Stdio::from(stderr))
+        .status()
         .expect("sidecar start");
     assert!(
-        start.status.success(),
-        "sidecar start exited with {}\nstdout: {}\nstderr: {}",
-        start.status,
-        String::from_utf8_lossy(&start.stdout).trim(),
-        String::from_utf8_lossy(&start.stderr).trim()
+        status.success(),
+        "sidecar start exited with {status}\n{}",
+        fs::read_to_string(&trace).unwrap_or_default().trim()
     );
     let sink = home
         .join("projects")

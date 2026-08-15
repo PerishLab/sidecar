@@ -75,6 +75,11 @@ Start reuses a healthy broker or creates one before launching targets. Full
 stop and reset terminate it; targeted stop retains it while another target in
 the namespace remains. No endpoint file or deterministic port window exists.
 
+A Windows spawn carries every inheritable handle, so a broker outlives the
+`start` that created it while still holding that command's standard handles. A
+caller reading `start` through a pipe there sees no end of file until the broker
+exits. Redirect to a file when a script must capture it.
+
 ## Inspect
 
 The broker is runtime discovery infrastructure, not a business endpoint.
