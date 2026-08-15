@@ -8,8 +8,8 @@ mod update;
 
 #[doc(hidden)]
 pub mod test {
+    pub use crate::args::__test as cli;
     pub use crate::broker::__test as broker;
-    pub use crate::cli::__test as cli;
     pub use crate::update::__test as update;
 }
 
