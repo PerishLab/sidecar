@@ -22,6 +22,36 @@ announced as one `SIDECAR_<TERM>` environment word and templated into manifest
 values as `{term}`. Sidecar grants and announces; it never binds, fences, or
 injects into the target's own arguments.
 
+## Grants
+
+Sidecar owns what a grant is and how it is announced. A target owns how it is
+used. The gap between them is closed by first-party bindings, never by sidecar
+writing into a target's own arguments.
+
+`sidecar.schema.jsonc` carries the whole contract: a schema version and a map of
+words. A word is an environment variable name; its entry states the term it
+carries, the lexical form of its value, what it means, and what its absence
+means. Absence is never a zero, an empty string, or a default -- it is the
+statement that no such grant was made. Sidecar's own words live under the
+`SIDECAR_` prefix and are only ever added; a target's own environment is its own.
+
+The schema is load-bearing rather than descriptive. A test spawns a probe and
+asserts that the set of words sidecar actually announces equals the set the
+schema declares, and that each value matches its declared form, so the file
+cannot drift from the emitter.
+
+`sidecar.fixture.jsonc` is what a language binding is checked against. The
+fixture, not the first binding written, is the contract's truth: each case gives
+an environment and the grants a conforming binding must expose from it. A
+binding may ignore a word it does not know, which is how one schema version
+stays readable by an older binding.
+
+A grant is immutable for the life of the target. Both delivery paths -- the
+environment word and the `{term}` template expanded into manifest values -- are
+fixed before the process starts, and both are inherited across an arbitrary
+process tree for free. Anything that must rotate or move while a target runs
+cannot be granted this way.
+
 ## Broker
 
 One loopback TCP broker exists per project and namespace. Its packed argv marker
