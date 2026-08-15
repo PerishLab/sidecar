@@ -50,13 +50,25 @@ fn answers() {
     );
 
     let answer = settle(&config, &home);
+    let said = fs::read_to_string(
+        home.join("projects")
+            .join(namespace(&seat))
+            .join("logs")
+            .join("probe.log"),
+    )
+    .unwrap_or_else(|err| format!("the target log is unreadable: {err}"));
     let _ = sidecar(&config, &home)
         .args(["reset", "--force"])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
 
-    let answer = answer.expect("the probe should answer inspect before the deadline");
+    let answer = answer.unwrap_or_else(|err| {
+        panic!(
+            "the probe never answered inspect.\ninspect said: {err}\nthe target said:\n{}",
+            said.trim()
+        )
+    });
     assert_eq!(
         answer.get("ok").and_then(Value::as_bool),
         Some(true),
@@ -70,8 +82,9 @@ fn answers() {
     assert!(port > 0, "the probe read port {port} from its grant");
 }
 
-fn settle(config: &Path, home: &Path) -> Option<Value> {
+fn settle(config: &Path, home: &Path) -> Result<Value, String> {
     let deadline = Instant::now() + Duration::from_secs(30);
+    let mut last = "inspect was never attempted".to_string();
     while Instant::now() < deadline {
         let probe = sidecar(config, home)
             .args(["inspect", "probe", "server.status", "--format=json"])
@@ -80,11 +93,12 @@ fn settle(config: &Path, home: &Path) -> Option<Value> {
         if probe.status.success()
             && let Ok(value) = serde_json::from_slice::<Value>(&probe.stdout)
         {
-            return Some(value);
+            return Ok(value);
         }
+        last = String::from_utf8_lossy(&probe.stderr).trim().to_string();
         std::thread::sleep(Duration::from_millis(200));
     }
-    None
+    Err(last)
 }
 
 fn sidecar(config: &Path, home: &Path) -> Command {
@@ -100,9 +114,13 @@ fn sidecar(config: &Path, home: &Path) -> Command {
 
 fn script() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../packages/sidecar/tests/probe.ts")
-        .canonicalize()
-        .expect("probe script")
+        .ancestors()
+        .nth(2)
+        .expect("workspace root")
+        .join("packages")
+        .join("sidecar")
+        .join("tests")
+        .join("probe.ts")
 }
 
 fn namespace(seat: &Path) -> String {
