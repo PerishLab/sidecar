@@ -34,16 +34,19 @@ fn answers() {
     )
     .expect("manifest");
 
+    let trace = seat.join("start.log");
+    let file = fs::File::create(&trace).expect("start sink");
+    let stderr = file.try_clone().expect("start stderr");
     let start = sidecar(&config, &home)
         .args(["start"])
-        .output()
+        .stdout(Stdio::from(file))
+        .stderr(Stdio::from(stderr))
+        .status()
         .expect("sidecar start");
     assert!(
-        start.status.success(),
-        "sidecar start exited with {}\nstdout: {}\nstderr: {}",
-        start.status,
-        String::from_utf8_lossy(&start.stdout).trim(),
-        String::from_utf8_lossy(&start.stderr).trim()
+        start.success(),
+        "sidecar start exited with {start}\n{}",
+        fs::read_to_string(&trace).unwrap_or_default().trim()
     );
 
     let answer = settle(&config, &home);

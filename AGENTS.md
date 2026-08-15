@@ -165,11 +165,10 @@ must pass before anything lands:
 
 ## Repository Shape
 
-- `crates/core/`: `Manifest` config, diagnostics, plan, socket parser, stamp protocol, process discovery, inspect client.
+- `crates/core/`: `Manifest` config, diagnostics, plan, inspect bridge and envelope, stamp protocol, process discovery.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`logs`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
 - `crates/cli/src/world.rs`: the unpublished `world` probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
-- `packages/sidecar/`: `@perish/sidecar`, the binding that turns the announcement into `control` and `inspect` facets. `packages/sidecar/tests/probe.ts` is the target `crates/cli/tests/probe.rs` raises end to end.
-- `crates/core/src/runtime/bridge.rs`: the inspect bridge seat and its per-platform facet.
+- `packages/sidecar/`: `@perish/sidecar`, the binding that turns the announcement into `control` and `inspect` facets; its `tests/probe.ts` is the target `crates/cli/tests/probe.rs` raises end to end.
 - `plumb.toml`: product authority, binaries, and supported targets, for stable Plumb.
 - `DESIGN.md`: broker topology, the grant contract, and authority boundaries.
 - `runseal.toml`: the env-only per-run profile.
@@ -282,16 +281,18 @@ inherited stdout, reporting the target pid or the spawn error, written once. It
 takes **no extra lifetime** — it exits when the target exits. It performs **no
 transformation** — it inherits the log handle rather than opening one, and
 passes argv, environment, and working directory through untouched.
+Never capture `sidecar start` with `Command::output`: a Windows spawn carries
+every inheritable handle, so the broker holds those pipes and blocks the read
+until it exits. Redirect to a file and wait on `status`.
 
 ## Inspect bridge
 
-DESIGN.md states the wire format. A manifest declares `inspect = {}` on a target
-and carries no address; sidecar derives the seat under
-`<data_home>/projects/<namespace>/` and announces it as the `inspect` grant.
-`crates/core/src/runtime/bridge.rs` holds the seat and one facet per platform,
-`crates/core/src/inspect.rs` holds the envelope, and `commands::inspect` in
-`crates/cli/src/commands.rs` orchestrates. Do not reintroduce a transport URL:
-the capability is public, the mechanism is not.
+DESIGN.md states the wire format. A target declares `inspect = {}` and carries no
+address; sidecar derives the seat under `<data_home>/projects/<namespace>/` and
+announces it as the `inspect` grant. `runtime/bridge.rs` holds the seat and one
+facet per platform, `inspect.rs` holds the envelope, `commands::inspect`
+orchestrates. Do not reintroduce a transport URL: the capability is public, the
+mechanism is not.
 
 ## Release
 
