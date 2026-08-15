@@ -129,18 +129,19 @@ install; it never follows a non-stable channel manager.
 the `RUNSEAL_REPO_*` and `SIDECAR_REPO_*` values into ignored `.local/`
 seats and carries no command or lifecycle behavior.
 
-Use `runseal profile` to validate the resolved profile and
-`runseal : <command> [args...]` when a command needs those environment values.
-Generic guard, init, land, and release behavior belongs to the workshop
-substrate or canonical workflow. This repository carries no Deno, filesystem
-wrapper, or repository-owned Git hook.
+Use `runseal profile` to validate the resolved profile and `runseal : <command>`
+when a command needs those values. Generic guard, init, land, and release
+behavior belongs to the workshop substrate or canonical workflow. This
+repository carries no Deno, filesystem wrapper, or repository-owned Git hook.
 
 ## Spawn Residue
 
 `crates/cli/tests/world.rs` spawns the probe bare and through sidecar, then
 asserts the differing observations equal a declared residue exactly. Equality,
-not containment: a smaller difference means the declaration is wrong, not that
-the spawn improved. Anything beyond `pid`, `ppid`, and the group is owed debt.
+not containment: a smaller difference means the declaration is wrong, not the
+spawn improved. Anything beyond `pid`, `ppid`, and the group is owed debt.
+The proof runs on Linux and macOS; the Windows lane still only builds, because
+the suite is not Windows-clean and the probe reports no parent or group there.
 
 ## Constitution
 
@@ -160,13 +161,12 @@ must pass before anything lands:
 - Full gate: the six commands listed under Pre-PR Checks below.
 - CLI smoke: `cargo run --locked -p sidecar -- doctor --config examples/minimal.toml`
 - Plan: `cargo run --locked -p sidecar -- plan --config examples/minimal.toml --format json`
-- Profiled: prefix any of them with `runseal : ` only when it needs the repo-local profile.
 
 ## Repository Shape
 
 - `crates/core/`: `Manifest` config, diagnostics, plan, socket parser, stamp protocol, process discovery, inspect client.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
-- `crates/world/`: unpublished probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
+- `crates/cli/src/world.rs`: the unpublished `world` probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
 - `plumb.toml`: product authority, binaries, and supported targets consumed by
   stable Plumb.
 - `DESIGN.md`: current broker topology and authority boundaries.

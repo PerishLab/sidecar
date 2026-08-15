@@ -1,7 +1,7 @@
 use crate::args::Global;
 use crate::help::help;
 use crate::update;
-use crate::{broker, commands, output};
+use crate::{commands, output};
 use clap::{Parser, Subcommand};
 use sidecar_core::Severity;
 use std::path::Path;
@@ -136,7 +136,7 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
         Verb::Runtime { cmd } => match cmd {
             Runtime::Serve {
                 project, namespace, ..
-            } => broker::serve(&project, &namespace),
+            } => commands::broker::serve(&project, &namespace),
             Runtime::Host { command, .. } => commands::host(&command),
         },
         Verb::Doctor => {

@@ -58,15 +58,7 @@ fn relations() -> Vec<String> {
 }
 
 fn probe() -> PathBuf {
-    let sidecar = Path::new(env!("CARGO_BIN_EXE_sidecar"));
-    let seat = sidecar.parent().expect("binary directory");
-    let probe = seat.join(format!("world{}", std::env::consts::EXE_SUFFIX));
-    assert!(
-        probe.is_file(),
-        "the world probe is missing at {}; run the workspace test suite",
-        probe.display()
-    );
-    probe
+    PathBuf::from(env!("CARGO_BIN_EXE_world"))
 }
 
 fn seat(name: &str) -> PathBuf {

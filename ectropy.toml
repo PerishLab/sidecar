@@ -13,7 +13,7 @@ paths = [
   "crates/cli/src/main.rs",
   "crates/cli/src/update.rs",
   "crates/core/src/paths.rs",
-  "crates/world/src/main.rs",
+  "crates/cli/src/world.rs",
   "crates/*/tests/**/*.rs",
 ]
 syntax = "environment"

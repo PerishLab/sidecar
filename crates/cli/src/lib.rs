@@ -1,5 +1,4 @@
 mod args;
-mod broker;
 mod cli;
 mod commands;
 mod help;
@@ -9,7 +8,7 @@ mod update;
 #[doc(hidden)]
 pub mod test {
     pub use crate::args::__test as cli;
-    pub use crate::broker::__test as broker;
+    pub use crate::commands::broker::__test as broker;
     pub use crate::update::__test as update;
 }
 
