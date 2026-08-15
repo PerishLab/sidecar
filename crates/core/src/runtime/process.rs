@@ -1,9 +1,7 @@
 use crate::runtime::broker;
 use crate::stamp;
-#[cfg(any(unix, windows))]
+#[cfg(any(all(unix, not(target_os = "linux")), windows))]
 use std::process::Command;
-#[cfg(unix)]
-use std::process::Stdio;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Stamped {
@@ -65,7 +63,35 @@ where
         .collect()
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
+fn snapshot() -> Result<Vec<(u32, String)>, String> {
+    let mut rows = Vec::new();
+    let seats = std::fs::read_dir("/proc").map_err(|err| format!("failed to read /proc: {err}"))?;
+    for seat in seats.flatten() {
+        let Some(pid) = seat
+            .file_name()
+            .to_str()
+            .and_then(|name| name.parse::<u32>().ok())
+        else {
+            continue;
+        };
+        let Ok(raw) = std::fs::read(seat.path().join("cmdline")) else {
+            continue;
+        };
+        let command = raw
+            .split(|byte| *byte == 0)
+            .filter(|part| !part.is_empty())
+            .map(String::from_utf8_lossy)
+            .collect::<Vec<_>>()
+            .join(" ");
+        if !command.is_empty() {
+            rows.push((pid, command));
+        }
+    }
+    Ok(rows)
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
 fn snapshot() -> Result<Vec<(u32, String)>, String> {
     let output = Command::new("ps")
         .args(["-axo", "pid=,command="])
@@ -156,32 +182,7 @@ pub fn parse(text: &str) -> Vec<(u32, String)> {
 pub fn stop(pid: u32) -> Result<(), String> {
     #[cfg(unix)]
     {
-        if !exists(pid) {
-            return Ok(());
-        }
-        let group = Command::new("kill")
-            .args(["-TERM", "--", &format!("-{pid}")])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map_err(|err| format!("kill failed: {err}"))?;
-        if group.success() {
-            return Ok(());
-        }
-
-        let status = Command::new("kill")
-            .args(["-TERM", "--", &pid.to_string()])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map_err(|err| format!("kill failed: {err}"))?;
-        if status.success() || !exists(pid) {
-            Ok(())
-        } else {
-            Err(format!(
-                "kill -TERM -{pid} exited with status {group}; kill -TERM {pid} exited with status {status}"
-            ))
-        }
+        signal(pid, libc::SIGTERM)
     }
 
     #[cfg(windows)]
@@ -210,13 +211,10 @@ pub fn stop(pid: u32) -> Result<(), String> {
 pub fn exists(pid: u32) -> bool {
     #[cfg(unix)]
     {
-        Command::new("kill")
-            .arg("-0")
-            .arg(pid.to_string())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .is_ok_and(|status| status.success())
+        if unsafe { libc::kill(pid as libc::pid_t, 0) } == 0 {
+            return true;
+        }
+        std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
     }
 
     #[cfg(windows)]
@@ -244,4 +242,21 @@ pub fn exists(pid: u32) -> bool {
         let _ = pid;
         false
     }
+}
+
+#[cfg(unix)]
+pub fn signal(pid: u32, sign: libc::c_int) -> Result<(), String> {
+    if !exists(pid) {
+        return Ok(());
+    }
+    if unsafe { libc::kill(-(pid as libc::pid_t), sign) } == 0 {
+        return Ok(());
+    }
+    if unsafe { libc::kill(pid as libc::pid_t, sign) } == 0 || !exists(pid) {
+        return Ok(());
+    }
+    Err(format!(
+        "failed to signal {pid}: {}",
+        std::io::Error::last_os_error()
+    ))
 }

@@ -257,7 +257,7 @@ Canonical flag name. It lands on the host process, never on the target's command
 --sidecar-stamp=v=1;a=<sidecar.name>;n=<project.namespace>;m=<sidecar.mode>;s=tool%3Asidecar
 ```
 
-The short keys are `v` (stamp protocol version), `a` (app/workload), `n` (namespace), `m` (mode), and `s` (source). Values are percent-encoded; for example `tool:sidecar` is encoded as `tool%3Asidecar`. Discovery uses only this flag via `ps -axo pid=,command=` on Unix and the Windows PowerShell `Win32_Process` query on Windows; the implementation is in `crates/core/src/runtime/process.rs`.
+The short keys are `v` (stamp protocol version), `a` (app/workload), `n` (namespace), `m` (mode), and `s` (source). Values are percent-encoded; for example `tool:sidecar` is encoded as `tool%3Asidecar`. Discovery uses only this flag, read from `/proc` on Linux, `ps -axo pid=,command=` on other Unix, and the PowerShell `Win32_Process` query on Windows. Signals go through `libc::kill` rather than a `kill` binary, so the lifecycle needs no `procps` on Linux. The implementation is in `crates/core/src/runtime/process.rs`.
 
 The stamp marks; the grant announcement configures. A fact a target must read belongs in a `SIDECAR_<TERM>` word derived from the grant table. A fact only the process table must carry belongs in the stamp, on the host. Do not add sibling sidecar argv flags for either.
 

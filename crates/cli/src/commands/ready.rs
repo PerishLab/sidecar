@@ -5,6 +5,7 @@ use sidecar_core::{Paths, process};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
+#[cfg(windows)]
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
@@ -147,32 +148,7 @@ pub(super) fn wait(pid: u32, timeout: Duration) -> bool {
 pub(super) fn kill(pid: u32) -> Result<(), String> {
     #[cfg(unix)]
     {
-        let group = Command::new("kill")
-            .args(["-KILL", "--", &format!("-{pid}")])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map_err(|err| format!("kill failed: {err}"))?;
-        if group.success() {
-            return Ok(());
-        }
-        if !process::exists(pid) {
-            return Ok(());
-        }
-
-        let status = Command::new("kill")
-            .args(["-KILL", "--", &pid.to_string()])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map_err(|err| format!("kill failed: {err}"))?;
-        if status.success() || !process::exists(pid) {
-            Ok(())
-        } else {
-            Err(format!(
-                "kill -KILL -{pid} exited with status {group}; kill -KILL {pid} exited with status {status}"
-            ))
-        }
+        process::signal(pid, libc::SIGKILL)
     }
 
     #[cfg(windows)]
