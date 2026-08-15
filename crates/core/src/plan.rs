@@ -238,30 +238,6 @@ impl config::Endpoint {
     }
 }
 
-impl App {
-    pub fn argv(&self) -> Vec<String> {
-        let mut argv = self.args.clone();
-        argv.extend(self.stamp.args());
-        argv
-    }
-}
-
-impl Sidecar {
-    pub fn argv(&self) -> Vec<String> {
-        let mut argv = self.args.clone();
-        argv.extend(self.stamp.args());
-        argv
-    }
-}
-
-impl Target {
-    pub fn argv(&self) -> Vec<String> {
-        let mut argv = self.args.clone();
-        argv.extend(self.stamp.args());
-        argv
-    }
-}
-
 fn expand(value: &str, project: &config::Project, name: &str) -> Result<String, String> {
     let vars = BTreeMap::from([
         ("project", project.name.clone()),

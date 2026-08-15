@@ -138,12 +138,19 @@ pub mod __test {
             Verb::List => vec!["list".to_string()],
             Verb::Reset => vec!["reset".to_string()],
             Verb::Update => vec!["update".to_string()],
-            Verb::Runtime { cmd } => {
-                let Runtime::Serve {
-                    project,
-                    namespace,
-                    broker,
-                } = cmd;
+            Verb::Runtime { cmd } => runtime(cmd),
+            Verb::Version => vec!["version".to_string()],
+            Verb::Help => vec!["help".to_string()],
+        }
+    }
+
+    fn runtime(cmd: &Runtime) -> Vec<String> {
+        match cmd {
+            Runtime::Serve {
+                project,
+                namespace,
+                broker,
+            } => {
                 let mut command = vec![
                     "runtime".to_string(),
                     "serve".to_string(),
@@ -155,8 +162,15 @@ pub mod __test {
                 }
                 command
             }
-            Verb::Version => vec!["version".to_string()],
-            Verb::Help => vec!["help".to_string()],
+            Runtime::Host { stamp, command } => {
+                let mut argv = vec![
+                    "runtime".to_string(),
+                    "host".to_string(),
+                    format!("--sidecar-stamp={stamp}"),
+                ];
+                argv.extend(command.clone());
+                argv
+            }
         }
     }
 

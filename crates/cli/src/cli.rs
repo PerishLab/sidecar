@@ -87,6 +87,12 @@ pub(crate) enum Runtime {
         #[arg(long = "sidecar-broker")]
         broker: Option<String>,
     },
+    Host {
+        #[arg(long = "sidecar-stamp")]
+        stamp: String,
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        command: Vec<String>,
+    },
 }
 
 pub fn run(args: Vec<String>) -> Result<(), String> {
@@ -127,12 +133,12 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
             Ok(())
         }
         Verb::Update => update::run(channel()),
-        Verb::Runtime { cmd } => {
-            let Runtime::Serve {
+        Verb::Runtime { cmd } => match cmd {
+            Runtime::Serve {
                 project, namespace, ..
-            } = cmd;
-            broker::serve(&project, &namespace)
-        }
+            } => broker::serve(&project, &namespace),
+            Runtime::Host { command, .. } => commands::host(&command),
+        },
         Verb::Doctor => {
             let state = global.state()?;
             let diagnostics = state.diagnostics();

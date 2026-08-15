@@ -17,6 +17,7 @@ pub(crate) struct Status {
 #[derive(Clone, Debug)]
 
 pub(crate) struct Launch {
+    pub(crate) host: u32,
     pub(crate) pid: u32,
     pub(crate) ready: Option<Ready>,
     pub(crate) log: std::path::PathBuf,
@@ -179,7 +180,8 @@ pub(crate) mod state {
         state.insert(
             target.name.clone(),
             serde_json::json!({
-                "pid": launch.pid,
+                "pid": launch.host,
+                "target": launch.pid,
                 "app": target.stamp.app,
                 "namespace": target.stamp.namespace,
                 "mode": target.stamp.mode,

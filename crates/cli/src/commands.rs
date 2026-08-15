@@ -1,9 +1,11 @@
 mod grant;
+mod host;
 mod pick;
 mod ready;
 mod render;
 mod runtime;
 use grant::{Grants, health};
+pub(crate) use host::host;
 use pick::{pick, purge};
 
 use crate::cli::Format;
@@ -14,6 +16,7 @@ use sidecar_core::plan::{Plan, Target};
 use sidecar_core::{Paths, State, inspect, process, socket};
 use std::collections::BTreeMap;
 use std::fs::{self, OpenOptions};
+use std::io::{BufRead, BufReader};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -102,6 +105,7 @@ impl Session {
             rows.push(render::Row {
                 name: target.name.clone(),
                 pids,
+                target: seat(&state, &target.name),
                 health: health(target, &state)?,
             });
         }
@@ -200,16 +204,19 @@ impl Session {
             .truncate(true)
             .open(&path)
             .map_err(|err| format!("failed to open {}: {err}", path.display()))?;
-        let stderr = file
-            .try_clone()
-            .map_err(|err| format!("failed to clone {}: {err}", path.display()))?;
-        let mut command = Command::new(&target.command);
+        let exe = std::env::current_exe()
+            .map_err(|err| format!("failed to resolve the sidecar binary: {err}"))?;
+        let mut command = Command::new(exe);
         command
-            .args(target.argv())
+            .args(["runtime", "host"])
+            .args(target.stamp.args())
+            .arg("--")
+            .arg(&target.command)
+            .args(&target.args)
             .current_dir(&cwd)
             .stdin(Stdio::null())
-            .stdout(Stdio::from(file))
-            .stderr(Stdio::from(stderr));
+            .stdout(Stdio::piped())
+            .stderr(Stdio::from(file));
         let grants = Grants::lease(target, endpoint)?;
         for (key, value) in &target.env {
             let held = grants.fill(value, &format!("{} env {key}", target.name))?;
@@ -222,8 +229,9 @@ impl Session {
         runtime::detach(&mut command);
         let mut child = command
             .spawn()
-            .map_err(|err| format!("failed to spawn `{}`: {err}", target.command))?;
-        let pid = child.id();
+            .map_err(|err| format!("failed to host `{}`: {err}", target.name))?;
+        let host = child.id();
+        let pid = greet(&mut child, &target.name)?;
         let ready = match &target.ready {
             Some(ready) => Some(runtime::watch(
                 &mut child,
@@ -234,6 +242,7 @@ impl Session {
             None => None,
         };
         Ok(Launch {
+            host,
             pid,
             ready,
             log: path,
@@ -255,4 +264,32 @@ impl Session {
     fn log(&self, name: &str) -> PathBuf {
         self.paths.project.join("logs").join(format!("{name}.log"))
     }
+}
+
+fn greet(child: &mut std::process::Child, name: &str) -> Result<u32, String> {
+    let pipe = child
+        .stdout
+        .take()
+        .ok_or_else(|| format!("`{name}` host opened no handshake"))?;
+    let mut line = String::new();
+    BufReader::new(pipe)
+        .read_line(&mut line)
+        .map_err(|err| format!("`{name}` host handshake failed: {err}"))?;
+    let word: Value = serde_json::from_str(line.trim())
+        .map_err(|_| format!("`{name}` host said nothing before exiting"))?;
+    if let Some(err) = word.get("error").and_then(Value::as_str) {
+        return Err(err.to_string());
+    }
+    word.get("pid")
+        .and_then(Value::as_u64)
+        .and_then(|pid| u32::try_from(pid).ok())
+        .ok_or_else(|| format!("`{name}` host handshake carried no pid"))
+}
+
+fn seat(state: &Map<String, Value>, name: &str) -> Option<u32> {
+    state
+        .get(name)?
+        .get("target")?
+        .as_u64()
+        .and_then(|pid| u32::try_from(pid).ok())
 }

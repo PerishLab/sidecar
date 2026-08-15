@@ -8,6 +8,7 @@ syntax = "test"
 [[grant]]
 paths = [
   "crates/cli/src/args.rs",
+  "crates/cli/src/commands.rs",
   "crates/cli/src/commands/runtime.rs",
   "crates/cli/src/main.rs",
   "crates/cli/src/update.rs",

@@ -60,7 +60,6 @@ impl State {
             if let Some(ready) = &app.ready {
                 require(&mut diagnostics, "app.ready.role", &ready.role);
             }
-            warn(&mut diagnostics, "app", &app.command, &app.args);
         } else if self.config.sidecars.is_empty() {
             diagnostics.push(Diagnostic::warning(
                 "app",
@@ -95,7 +94,6 @@ impl State {
             if let Some(ready) = &sidecar.ready {
                 require(&mut diagnostics, format!("{path}.ready.role"), &ready.role);
             }
-            warn(&mut diagnostics, &path, &sidecar.command, &sidecar.args);
         }
 
         let mut names = HashSet::new();
@@ -124,31 +122,6 @@ fn require(diagnostics: &mut Vec<Diagnostic>, path: impl Into<String>, value: &s
     if value.trim().is_empty() {
         diagnostics.push(Diagnostic::error(path, "value must not be empty"));
     }
-}
-
-fn warn(diagnostics: &mut Vec<Diagnostic>, path: &str, command: &str, args: &[String]) {
-    if !cargo(command) || !consumes(args) {
-        return;
-    }
-    diagnostics.push(Diagnostic::warning(
-        format!("{path}.args"),
-        "cargo run target may consume the appended --sidecar-stamp argument; add `--` after cargo run options",
-    ));
-}
-
-fn cargo(command: &str) -> bool {
-    command
-        .rsplit(['/', '\\'])
-        .next()
-        .map(|name| name == "cargo" || name == "cargo.exe")
-        .unwrap_or(false)
-}
-
-fn consumes(args: &[String]) -> bool {
-    let Some(index) = args.iter().position(|arg| arg == "run") else {
-        return false;
-    };
-    !args.iter().skip(index + 1).any(|arg| arg == "--")
 }
 
 impl fmt::Display for Error {
