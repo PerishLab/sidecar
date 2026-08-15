@@ -8,7 +8,7 @@
 2. **Host and stamp** — every target is raised by a thin `sidecar runtime host` parent that carries the packed `--sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>` flag. The target's own command line is exactly what the manifest declares.
 3. **Grants** — leased resources reach a target as `SIDECAR_<TERM>` environment words and as `{term}` templates in manifest values, never as injected command-line arguments.
 4. **Broker runtime** — one project/namespace-scoped loopback TCP broker discovered from `--sidecar-broker` argv identity plus live listener probing; targets receive its endpoint through the `SIDECAR_BROKER` grant word.
-5. **Inspect bridge** — a single-shot SidecarRuntime event frame over a Unix socket (TCP fallback) for talking to a running sidecar's inspect server.
+5. **Inspect bridge** — a single-shot SidecarRuntime event frame over one platform bridge facet; a manifest declares the capability and never the transport.
 
 This repository is not a `stim.io` module. `stim.io` and other consumers install
 `sidecar` through the stable managers generated from `plumb.toml`.
@@ -142,8 +142,6 @@ not containment: a smaller difference means the declaration is wrong, not the
 spawn improved. Anything beyond `pid`, `ppid`, and the group is owed debt.
 The proof runs on every lane. On Windows the probe reports no parent or group,
 so the declared residue omits them there: a narrower proof, not a different one.
-Windows carries the process, observation, and grant planes; the consumption
-plane, meaning the inspect transport and the npm binding, is not offered there.
 
 ## Constitution
 
@@ -170,8 +168,8 @@ must pass before anything lands:
 - `crates/core/`: `Manifest` config, diagnostics, plan, socket parser, stamp protocol, process discovery, inspect client.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`logs`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
 - `crates/cli/src/world.rs`: the unpublished `world` probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
-- `packages/sidecar/`: `@perish/sidecar`, the first language binding for the grant announcement. It is checked against the fixture, not against itself; `pnpm -r test` is part of the guard.
-- `sidecar.schema.jsonc` and `sidecar.fixture.jsonc`: the grant announcement vocabulary and the cases every language binding is checked against. The schema is load-bearing, not descriptive; `crates/cli/tests/world.rs` asserts the words sidecar announces are exactly the words it declares.
+- `packages/sidecar/`: `@perish/sidecar`, the binding that turns the announcement into `control` and `inspect` facets. `packages/sidecar/tests/probe.ts` is the target `crates/cli/tests/probe.rs` raises end to end.
+- `crates/core/src/runtime/bridge.rs`: the inspect bridge seat and its per-platform facet.
 - `plumb.toml`: product authority, binaries, and supported targets, for stable Plumb.
 - `DESIGN.md`: broker topology, the grant contract, and authority boundaries.
 - `runseal.toml`: the env-only per-run profile.
@@ -287,10 +285,13 @@ passes argv, environment, and working directory through untouched.
 
 ## Inspect bridge
 
-DESIGN.md states the wire format. Default transport is Unix
-(`unix:///absolute/path.sock`); TCP is reserved for non-Unix fallback. The
-implementation is `crates/core/src/inspect.rs`, orchestrated by
-`commands::inspect` in `crates/cli/src/commands.rs`.
+DESIGN.md states the wire format. A manifest declares `inspect = {}` on a target
+and carries no address; sidecar derives the seat under
+`<data_home>/projects/<namespace>/` and announces it as the `inspect` grant.
+`crates/core/src/runtime/bridge.rs` holds the seat and one facet per platform,
+`crates/core/src/inspect.rs` holds the envelope, and `commands::inspect` in
+`crates/cli/src/commands.rs` orchestrates. Do not reintroduce a transport URL:
+the capability is public, the mechanism is not.
 
 ## Release
 

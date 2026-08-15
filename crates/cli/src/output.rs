@@ -60,7 +60,6 @@ mod text {
             None => println!("app: <none>"),
         }
         targets(plan);
-        endpoints(plan);
         Ok(())
     }
 
@@ -73,19 +72,12 @@ mod text {
                 target.stamp.mode,
                 line(&target.command, &target.args)
             );
-            if let Some(socket) = &target.socket {
-                println!("    inspect_socket: {socket}");
+            if target.inspect {
+                println!("    inspect: declared");
             }
             if let Some(ready) = &target.ready {
                 println!("    ready: {}", ready.role);
             }
-        }
-    }
-
-    fn endpoints(plan: &Plan) {
-        println!("inspect endpoints: {}", plan.endpoints.len());
-        for endpoint in &plan.endpoints {
-            println!("- {} {} {}", endpoint.name, endpoint.kind, endpoint.url);
         }
     }
 }
@@ -122,11 +114,6 @@ mod json {
             "app": plan.app.as_ref().map(app),
             "sidecars": plan.sidecars.iter().map(sidecar).collect::<Vec<_>>(),
             "targets": plan.targets.iter().map(target).collect::<Vec<_>>(),
-            "inspectEndpoints": plan.endpoints.iter().map(|endpoint| serde_json::json!({
-                "name": endpoint.name,
-                "kind": endpoint.kind,
-                "url": endpoint.url,
-            })).collect::<Vec<_>>(),
         });
         println!(
             "{}",
@@ -144,7 +131,7 @@ mod json {
             "stamp": stamp(&app.stamp),
             "spawnArgs": app.args,
             "inheritsEnv": inherits(&app.inherits),
-            "inspectSocket": app.socket,
+            "inspect": app.inspect,
             "healthUrl": app.health,
         })
     }
@@ -159,7 +146,7 @@ mod json {
             "stamp": stamp(&target.stamp),
             "spawnArgs": target.args,
             "inheritsEnv": inherits(&target.inherits),
-            "inspectSocket": target.socket,
+            "inspect": target.inspect,
             "healthUrl": target.health,
             "ready": target.ready.as_ref().map(|ready| serde_json::json!({
                 "role": ready.role,
@@ -177,7 +164,7 @@ mod json {
             "stamp": stamp(&sidecar.stamp),
             "spawnArgs": sidecar.args,
             "inheritsEnv": inherits(&sidecar.inherits),
-            "inspectSocket": sidecar.socket,
+            "inspect": sidecar.inspect,
             "healthUrl": sidecar.health,
         })
     }

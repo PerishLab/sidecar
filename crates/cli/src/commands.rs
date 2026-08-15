@@ -17,7 +17,7 @@ use ready::Chain;
 use runtime::{Broker, Launch};
 use serde_json::{Map, Value};
 use sidecar_core::plan::{Plan, Target};
-use sidecar_core::{Paths, State, inspect, process, socket};
+use sidecar_core::{Paths, State, bridge, inspect, process};
 use std::collections::BTreeMap;
 use std::fs::{self, OpenOptions};
 use std::net::TcpListener;
@@ -197,13 +197,13 @@ impl Session {
             .iter()
             .find(|item| item.name == probe.sidecar)
             .ok_or_else(|| format!("unknown target `{}` in this manifest", probe.sidecar))?;
-        let socket = target.socket.as_deref().ok_or_else(|| {
-            format!(
-                "target `{}` has no inspect_socket configured in this manifest",
+        if !target.inspect {
+            return Err(format!(
+                "target `{}` declares no [inspect] section in this manifest",
                 probe.sidecar
-            )
-        })?;
-        let endpoint = socket::Endpoint::parse(socket).map_err(|err| err.to_string())?;
+            ));
+        }
+        let bridge = grant::seat(target, &self.paths);
         let body: Value = match probe.payload {
             Some(text) if !text.is_empty() => serde_json::from_str(text).map_err(|err| {
                 format!("payload is not valid JSON: {err}; quote the payload as a single argument")
@@ -214,7 +214,7 @@ impl Session {
             event: probe.event.to_string(),
             payload: body,
         };
-        let response = inspect::send(&endpoint, &request, Some(probe.timeout))?;
+        let response = inspect::send(&bridge, &request, Some(probe.timeout))?;
         render::inspect(probe.sidecar, probe.event, &response, format)
     }
 
@@ -236,6 +236,11 @@ impl Session {
             .truncate(true)
             .open(&path)
             .map_err(|err| format!("failed to open {}: {err}", path.display()))?;
+        if target.inspect {
+            let seat = self.paths.project.join("inspect");
+            fs::create_dir_all(&seat)
+                .map_err(|err| format!("failed to create {}: {err}", seat.display()))?;
+        }
         let exe = std::env::current_exe()
             .map_err(|err| format!("failed to resolve the sidecar binary: {err}"))?;
         let mut command = Command::new(exe);
@@ -249,7 +254,7 @@ impl Session {
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::from(file));
-        let grants = Grants::lease(target, endpoint)?;
+        let grants = Grants::lease(target, endpoint, &self.paths)?;
         for (key, value) in &target.env {
             let held = grants.fill(value, &format!("{} env {key}", target.name))?;
             command.env(key, held);
