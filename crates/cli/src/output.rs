@@ -189,7 +189,6 @@ mod json {
             "namespace": stamp.namespace,
             "mode": stamp.mode,
             "source": stamp.source,
-            "endpoint": stamp.endpoint,
         })
     }
 

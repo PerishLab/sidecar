@@ -33,8 +33,9 @@ Model:
   Manifest: [project], optional [app], repeated [[sidecars]], ready/env/inspect
   fields, and optional [[inspect.endpoints]]. See DESIGN.md for the schema.
   Lifecycle: command/cwd/args/env/stamps/ready/inspect/stop/reset close in manifest.
-  Stamps: --sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>;e=<endpoint>;
-  values are percent-encoded; the stamp is the only sidecar launch metadata.
+  Stamps: --sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>; values
+  are percent-encoded. The stamp marks a process; it carries no configuration.
+  Grants: leased resources reach a target as SIDECAR_<TERM> environment words.
   Inspect: one SidecarRuntime event frame over unix:// sockets; TCP is fallback.
   State: <data-home>/state plus <data-home>/projects/<namespace>; see AGENTS.md.
 

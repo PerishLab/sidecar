@@ -205,12 +205,12 @@ impl Session {
             .map_err(|err| format!("failed to clone {}: {err}", path.display()))?;
         let mut command = Command::new(&target.command);
         command
-            .args(target.launch(endpoint))
+            .args(target.argv())
             .current_dir(&cwd)
             .stdin(Stdio::null())
             .stdout(Stdio::from(file))
             .stderr(Stdio::from(stderr));
-        let grants = Grants::lease(target)?;
+        let grants = Grants::lease(target, endpoint)?;
         for (key, value) in &target.env {
             let held = grants.fill(value, &format!("{} env {key}", target.name))?;
             command.env(key, held);

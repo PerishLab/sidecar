@@ -6,8 +6,9 @@ pub(crate) struct Grants {
 }
 
 impl Grants {
-    pub(super) fn lease(target: &Target) -> Result<Self, String> {
+    pub(super) fn lease(target: &Target, broker: &str) -> Result<Self, String> {
         let mut terms = BTreeMap::new();
+        terms.insert("broker".to_string(), broker.to_string());
         if let Some(port) = port(target)? {
             terms.insert("port".to_string(), port.to_string());
         }

@@ -173,7 +173,7 @@ fn planned() {
 }
 
 #[test]
-fn endpoint() {
+fn marked() {
     let state = seed(
         r#"
         [project]
@@ -186,13 +186,13 @@ fn endpoint() {
     );
 
     let plan = state.plan().expect("plan");
-    let args = plan.targets[0].launch("tcp://127.0.0.1:4100");
+    let args = plan.targets[0].argv();
     let stamp = args
         .iter()
         .find(|arg| arg.starts_with("--sidecar-stamp="))
         .expect("stamp arg should exist");
     assert!(stamp.contains("v=1;"));
-    assert!(stamp.contains(";e=tcp%3A%2F%2F127.0.0.1%3A4100"));
+    assert!(!stamp.contains(";e="));
 }
 
 #[test]

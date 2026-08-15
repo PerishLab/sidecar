@@ -2,12 +2,13 @@
 
 ## Purpose
 
-`sidecar` is the standalone home for an IPC-based sidecars project manager. It owns four product-neutral abstractions:
+`sidecar` is the standalone home for an IPC-based sidecars project manager. It owns five product-neutral abstractions:
 
 1. **Manifest-closed lifecycle** — `sidecar.toml` defines command/cwd/args/env/stamps/readiness/inspect/status/stop/reset for every target.
-2. **Stamp args** — a packed `--sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>;e=<endpoint>` flag appended to every spawned target; it is the only sidecar launch metadata contract.
-3. **Broker runtime** — one project/namespace-scoped loopback TCP broker discovered from `--sidecar-broker` argv identity plus live listener probing; targets receive the broker endpoint through the stamp `e` field.
-4. **Inspect bridge** — a single-shot SidecarRuntime event frame over a Unix socket (TCP fallback) for talking to a running sidecar's inspect server.
+2. **Stamp args** — a packed `--sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>` flag appended to every spawned target; it marks a process and carries no configuration.
+3. **Grants** — leased resources reach a target as `SIDECAR_<TERM>` environment words and as `{term}` templates in manifest values, never as injected command-line arguments.
+4. **Broker runtime** — one project/namespace-scoped loopback TCP broker discovered from `--sidecar-broker` argv identity plus live listener probing; targets receive its endpoint through the `SIDECAR_BROKER` grant word.
+5. **Inspect bridge** — a single-shot SidecarRuntime event frame over a Unix socket (TCP fallback) for talking to a running sidecar's inspect server.
 
 This repository is not a `stim.io` module. `stim.io` and other consumers install
 `sidecar` through the stable managers generated from `plumb.toml`.
@@ -259,12 +260,12 @@ repository wrapper or Git hook to make landing locally discoverable.
 Canonical flag name (consumers must accept and ignore it on their sidecar binaries):
 
 ```
---sidecar-stamp=v=1;a=<sidecar.name>;n=<project.namespace>;m=<sidecar.mode>;s=tool%3Asidecar;e=<runtime-endpoint>
+--sidecar-stamp=v=1;a=<sidecar.name>;n=<project.namespace>;m=<sidecar.mode>;s=tool%3Asidecar
 ```
 
-The short keys are `v` (stamp protocol version), `a` (app/workload), `n` (namespace), `m` (mode), `s` (source), and `e` (sidecar runtime endpoint locator). Values are percent-encoded; for example `tool:sidecar` is encoded as `tool%3Asidecar`. Discovery uses only this flag via `ps -axo pid=,command=` on Unix and the Windows PowerShell `Win32_Process` query on Windows; the implementation is in `crates/core/src/runtime/process.rs`.
+The short keys are `v` (stamp protocol version), `a` (app/workload), `n` (namespace), `m` (mode), and `s` (source). Values are percent-encoded; for example `tool:sidecar` is encoded as `tool%3Asidecar`. Discovery uses only this flag via `ps -axo pid=,command=` on Unix and the Windows PowerShell `Win32_Process` query on Windows; the implementation is in `crates/core/src/runtime/process.rs`.
 
-The stamp is the single source of truth for sidecar launch metadata. Do not add env fallbacks or sibling sidecar argv flags for control-plane metadata. Future sidecar launch fields must be encoded inside this stamp contract.
+The stamp marks; the grant announcement configures. A fact a target must read belongs in a `SIDECAR_<TERM>` word derived from the grant table, never in the stamp and never injected into the target's own arguments. A fact only the process table must carry belongs in the stamp. Do not add sibling sidecar argv flags for either.
 
 ## Inspect bridge
 

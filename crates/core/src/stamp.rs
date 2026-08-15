@@ -14,18 +14,11 @@ pub struct Stamp {
     pub namespace: String,
     pub mode: String,
     pub source: String,
-    pub endpoint: Option<String>,
 }
 
 impl Stamp {
     pub fn args(&self) -> Vec<String> {
         vec![format!("{FLAG}={}", encode(self))]
-    }
-
-    pub fn at(&self, endpoint: impl Into<String>) -> Self {
-        let mut stamp = self.clone();
-        stamp.endpoint = Some(endpoint.into());
-        stamp
     }
 }
 
@@ -47,19 +40,14 @@ pub fn find(args: &[String]) -> Option<Stamp> {
 }
 
 pub fn encode(stamp: &Stamp) -> String {
-    let mut encoded = format!(
+    format!(
         "v={};a={};n={};m={};s={}",
         stamp.version,
         percent::encode(&stamp.app),
         percent::encode(&stamp.namespace),
         percent::encode(&stamp.mode),
         percent::encode(&stamp.source),
-    );
-    if let Some(endpoint) = &stamp.endpoint {
-        encoded.push_str(";e=");
-        encoded.push_str(&percent::encode(endpoint));
-    }
-    encoded
+    )
 }
 
 pub fn decode(value: &str) -> Result<Stamp, String> {
@@ -68,7 +56,6 @@ pub fn decode(value: &str) -> Result<Stamp, String> {
     let mut namespace = None;
     let mut mode = None;
     let mut source = None;
-    let mut endpoint = None;
 
     for part in value.split(';') {
         let Some((key, raw)) = part.split_once('=') else {
@@ -81,8 +68,7 @@ pub fn decode(value: &str) -> Result<Stamp, String> {
             "n" if namespace.is_none() => namespace = Some(decoded),
             "m" if mode.is_none() => mode = Some(decoded),
             "s" if source.is_none() => source = Some(decoded),
-            "e" if endpoint.is_none() => endpoint = Some(decoded),
-            "v" | "a" | "n" | "m" | "s" | "e" => {
+            "v" | "a" | "n" | "m" | "s" => {
                 return Err(format!("duplicate stamp key {key:?}"));
             }
             other => return Err(format!("unknown stamp key {other:?}")),
@@ -95,7 +81,6 @@ pub fn decode(value: &str) -> Result<Stamp, String> {
         namespace: required(namespace, "n")?,
         mode: required(mode, "m")?,
         source: required(source, "s")?,
-        endpoint,
     })
 }
 

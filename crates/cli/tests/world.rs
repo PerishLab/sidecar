@@ -41,6 +41,7 @@ fn residue() {
 fn declared() -> Vec<String> {
     let mut names = vec!["pid".to_string()];
     names.push("argv[1]".to_string());
+    names.push("env.SIDECAR_BROKER".to_string());
     names.extend(relations());
     names
 }

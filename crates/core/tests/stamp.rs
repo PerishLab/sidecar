@@ -9,7 +9,6 @@ fn canonical() {
         namespace: "default".into(),
         mode: "dev".into(),
         source: "tool:sidecar".into(),
-        endpoint: None,
     };
     let args = stamp.args();
     assert_eq!(
@@ -46,7 +45,6 @@ fn required() {
     assert_eq!(stamp.version, 1);
     assert_eq!(stamp.app, "api");
     assert_eq!(stamp.source, "tool:sidecar");
-    assert_eq!(stamp.endpoint, None);
 }
 
 #[test]
@@ -57,12 +55,11 @@ fn reserved() {
         namespace: "dev;blue".into(),
         mode: "runtime=1".into(),
         source: "tool:%sidecar".into(),
-        endpoint: Some("tcp://127.0.0.1:4100".into()),
     };
     let encoded = stamp::encode(&stamp);
     assert_eq!(
         encoded,
-        "v=1;a=api%20worker;n=dev%3Bblue;m=runtime%3D1;s=tool%3A%25sidecar;e=tcp%3A%2F%2F127.0.0.1%3A4100"
+        "v=1;a=api%20worker;n=dev%3Bblue;m=runtime%3D1;s=tool%3A%25sidecar"
     );
     assert_eq!(stamp::decode(&encoded).unwrap(), stamp);
 }
