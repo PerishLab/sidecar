@@ -140,8 +140,10 @@ repository carries no Deno, filesystem wrapper, or repository-owned Git hook.
 asserts the differing observations equal a declared residue exactly. Equality,
 not containment: a smaller difference means the declaration is wrong, not the
 spawn improved. Anything beyond `pid`, `ppid`, and the group is owed debt.
-The proof runs on Linux and macOS; the Windows lane still only builds, because
-the suite is not Windows-clean and the probe reports no parent or group there.
+The proof runs on every lane. On Windows the probe reports no parent or group,
+so the declared residue omits them there: a narrower proof, not a different one.
+Windows carries the process, observation, and grant planes; the consumption
+plane, meaning the inspect transport and the npm binding, is not offered there.
 
 ## Constitution
 
