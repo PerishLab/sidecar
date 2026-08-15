@@ -22,6 +22,14 @@ pub(crate) struct Global {
     pub(crate) force: bool,
 }
 
+#[derive(Args, Clone, Copy, Debug)]
+pub(crate) struct Waiting {
+    #[arg(long)]
+    pub(crate) wait: bool,
+    #[arg(long = "wait-timeout", default_value = "120", value_parser = seconds)]
+    pub(crate) timeout: u64,
+}
+
 impl Global {
     pub(crate) fn state(&self) -> Result<State, String> {
         let (config, discovered) = locate(self.config.as_deref())?;
@@ -98,6 +106,7 @@ fn seconds(value: &str) -> Result<u64, String> {
 
 #[doc(hidden)]
 pub mod __test {
+    use super::Waiting;
     use crate::cli::{Cli, Format, Runtime, Verb};
     use clap::Parser;
 
@@ -131,10 +140,11 @@ pub mod __test {
                 command.extend(payload.clone());
                 command
             }
-            Verb::Start { sidecar } => once("start", sidecar),
-            Verb::Restart { sidecar } => once("restart", sidecar),
+            Verb::Start { sidecar, waiting } => held("start", sidecar, waiting),
+            Verb::Restart { sidecar, waiting } => held("restart", sidecar, waiting),
             Verb::Stop { sidecar } => once("stop", sidecar),
             Verb::Status => vec!["status".to_string()],
+            Verb::Logs { sidecar, .. } => once("logs", sidecar),
             Verb::List => vec!["list".to_string()],
             Verb::Reset => vec!["reset".to_string()],
             Verb::Update => vec!["update".to_string()],
@@ -172,6 +182,14 @@ pub mod __test {
                 argv
             }
         }
+    }
+
+    fn held(verb: &str, sidecar: &Option<String>, waiting: &Waiting) -> Vec<String> {
+        let mut command = once(verb, sidecar);
+        if waiting.wait {
+            command.push("--wait".to_string());
+        }
+        command
     }
 
     fn once(verb: &str, sidecar: &Option<String>) -> Vec<String> {

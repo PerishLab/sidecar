@@ -1,5 +1,5 @@
 use serde_json::Value;
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
 
 pub(crate) fn host(command: &[String]) -> Result<(), String> {
@@ -66,4 +66,24 @@ fn handle(err: std::io::Error) -> String {
 fn say(word: &Value) {
     println!("{word}");
     let _ = std::io::stdout().flush();
+}
+
+pub(super) fn greet(child: &mut std::process::Child, name: &str) -> Result<u32, String> {
+    let pipe = child
+        .stdout
+        .take()
+        .ok_or_else(|| format!("`{name}` host opened no handshake"))?;
+    let mut line = String::new();
+    BufReader::new(pipe)
+        .read_line(&mut line)
+        .map_err(|err| format!("`{name}` host handshake failed: {err}"))?;
+    let word: Value = serde_json::from_str(line.trim())
+        .map_err(|_| format!("`{name}` host said nothing before exiting"))?;
+    if let Some(err) = word.get("error").and_then(Value::as_str) {
+        return Err(err.to_string());
+    }
+    word.get("pid")
+        .and_then(Value::as_u64)
+        .and_then(|pid| u32::try_from(pid).ok())
+        .ok_or_else(|| format!("`{name}` host handshake carried no pid"))
 }

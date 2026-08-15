@@ -199,6 +199,18 @@ pub(crate) mod state {
         save(paths, &state)
     }
 
+    pub(crate) fn seat(state: &Map<String, Value>, name: &str) -> Option<u32> {
+        state
+            .get(name)?
+            .get("target")?
+            .as_u64()
+            .and_then(|pid| u32::try_from(pid).ok())
+    }
+
+    pub(crate) fn log(paths: &Paths, name: &str) -> PathBuf {
+        paths.project.join("logs").join(format!("{name}.log"))
+    }
+
     pub(crate) fn remove(paths: &Paths, name: &str) -> Result<(), String> {
         let mut state = load(paths)?;
         state.remove(name);

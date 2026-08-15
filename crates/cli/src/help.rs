@@ -10,10 +10,11 @@ Commands:
   plan     [--config <path>] [--format text|json]
   inspect  config [--config <path>] [--format text|json]
   inspect  <sidecar> <event> [<json-payload>] [--config <path>] [--format text|json] [--inspect-timeout <seconds>]
-  start    [--config <path>] [<sidecar>]
-  restart  [--config <path>] [<sidecar>]
+  start    [--config <path>] [--wait] [--wait-timeout <s>] [<sidecar>]
+  restart  [--config <path>] [--wait] [--wait-timeout <s>] [<sidecar>]
   stop     [--config <path>] [--force] [<sidecar>]
   status   [--config <path>] [--format text|json]
+  logs     [--config <path>] [--follow] [--lines <n>] [<sidecar>]
   list     [--config <path>] [--format text|json]
   reset    [--config <path>] [--all] [--force]
   update
@@ -28,6 +29,8 @@ Global flags:
   --format text|json    output format where the command supports it
   --inspect-timeout <s> inspect round-trip timeout in seconds (default: 5)
   --force               force-kill sidecar-owned pids after graceful stop waits
+  --wait                after start, poll health_url until it answers 2xx
+  --wait-timeout <s>    how long --wait polls before giving up (default: 120)
 
 Model:
   Manifest: [project], optional [app], repeated [[sidecars]], ready/env/inspect
@@ -36,6 +39,7 @@ Model:
   Stamps: --sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>; values
   are percent-encoded. The stamp marks a process; it carries no configuration.
   Grants: leased resources reach a target as SIDECAR_<TERM> environment words.
+  Readiness: --wait polls health_url over plain http; a target without one refuses.
   Inspect: one SidecarRuntime event frame over unix:// sockets; TCP is fallback.
   State: <data-home>/state plus <data-home>/projects/<namespace>; see AGENTS.md.
 

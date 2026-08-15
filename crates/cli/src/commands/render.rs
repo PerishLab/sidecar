@@ -8,6 +8,7 @@ pub(super) struct Row {
     pub(super) name: String,
     pub(super) pids: Vec<u32>,
     pub(super) target: Option<u32>,
+    pub(super) log: std::path::PathBuf,
     pub(super) health: Option<String>,
 }
 
@@ -137,6 +138,7 @@ mod json {
                 "pid": row.target,
                 "hosts": row.pids,
                 "healthUrl": row.health,
+                "logPath": row.log.display().to_string(),
             })).collect::<Vec<_>>(),
         });
         println!(

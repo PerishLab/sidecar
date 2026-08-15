@@ -1,4 +1,4 @@
-use crate::args::Global;
+use crate::args::{Global, Waiting};
 use crate::help::help;
 use crate::update;
 use crate::{commands, output};
@@ -60,14 +60,25 @@ pub(crate) enum Verb {
     },
     Start {
         sidecar: Option<String>,
+        #[command(flatten)]
+        waiting: Waiting,
     },
     Restart {
         sidecar: Option<String>,
+        #[command(flatten)]
+        waiting: Waiting,
     },
     Stop {
         sidecar: Option<String>,
     },
     Status,
+    Logs {
+        sidecar: Option<String>,
+        #[arg(long)]
+        follow: bool,
+        #[arg(long)]
+        lines: Option<usize>,
+    },
     List,
     Reset,
     Update,
@@ -161,10 +172,19 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
             event,
             payload,
         } => inspect(global, first, event, payload),
-        Verb::Start { sidecar } => global.session()?.start(sidecar.as_deref()),
+        Verb::Start { sidecar, waiting } => global.session()?.start(sidecar.as_deref(), waiting),
         Verb::Stop { sidecar } => global.session()?.stop(sidecar.as_deref(), global.force),
-        Verb::Restart { sidecar } => global.session()?.restart(sidecar.as_deref(), global.force),
+        Verb::Restart { sidecar, waiting } => {
+            global
+                .session()?
+                .restart(sidecar.as_deref(), global.force, waiting)
+        }
         Verb::Status => global.session()?.status(global.format),
+        Verb::Logs {
+            sidecar,
+            follow,
+            lines,
+        } => global.session()?.logs(sidecar.as_deref(), follow, lines),
         Verb::List => global.session()?.list(global.format),
         Verb::Reset => global.session()?.reset(global.all, global.force),
     }
