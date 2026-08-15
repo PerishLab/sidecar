@@ -1,8 +1,10 @@
-mod lease;
+mod grant;
+mod pick;
 mod ready;
 mod render;
 mod runtime;
-use lease::{health, lease, pick, purge};
+use grant::{Grants, health};
+use pick::{pick, purge};
 
 use crate::cli::Format;
 use ready::Chain;
@@ -16,9 +18,6 @@ use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
-
-const SOCKET: &str = "SIDECAR_INSPECT_SOCKET";
-const PORT: &str = "SIDECAR_PORT";
 
 pub(crate) struct Session {
     pub(crate) state: State,
@@ -211,25 +210,15 @@ impl Session {
             .stdin(Stdio::null())
             .stdout(Stdio::from(file))
             .stderr(Stdio::from(stderr));
-        let port = lease(target)?;
-        let mut vars = BTreeMap::new();
-        if let Some(port) = port {
-            vars.insert("port", port.to_string());
-        }
+        let grants = Grants::lease(target)?;
         for (key, value) in &target.env {
-            let held = plumb::fill::fill(value, &vars)
-                .map_err(|err| format!("`{}` env {key}: {err}", target.name))?;
+            let held = grants.fill(value, &format!("{} env {key}", target.name))?;
             command.env(key, held);
         }
         for (key, value) in env {
             command.env(key, value);
         }
-        if let Some(socket) = &target.socket {
-            command.env(SOCKET, socket);
-        }
-        if let Some(port) = port {
-            command.env(PORT, port.to_string());
-        }
+        grants.announce(&mut command);
         runtime::detach(&mut command);
         let mut child = command
             .spawn()
@@ -248,7 +237,7 @@ impl Session {
             pid,
             ready,
             log: path,
-            port,
+            grants,
         })
     }
 
