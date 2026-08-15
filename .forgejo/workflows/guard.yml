@@ -31,6 +31,12 @@ jobs:
         env:
           PERISH_SETUP_PRODUCT: plumb
 
+      - name: Install JS dependencies
+        run: |
+          set -eu
+          corepack enable
+          pnpm install --frozen-lockfile
+
       - name: Guard
         run: |
           set -eu
@@ -39,6 +45,9 @@ jobs:
           cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo check --locked --workspace --all-targets --release
           cargo test --locked --workspace
+          pnpm biome ci .
+          pnpm -r exec tsc --noEmit
+          pnpm -r test
           ectropy .
 
   guard-macos:

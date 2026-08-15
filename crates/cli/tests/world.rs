@@ -10,7 +10,7 @@ use std::process::{Command, Stdio};
 const MANIFEST: &str = r#"
 [project]
 name = "world"
-namespace = "world"
+namespace = "NAMESPACE"
 root = "."
 
 [[sidecars]]
@@ -93,7 +93,8 @@ fn held(probe: &Path, seat: &Path, extra: &str) -> Value {
         &config,
         MANIFEST
             .replace("COMMAND", &probe.display().to_string())
-            .replace("EXTRA", extra),
+            .replace("EXTRA", extra)
+            .replace("NAMESPACE", &namespace(seat)),
     )
     .expect("manifest");
     let home = seat.join("home");
@@ -114,7 +115,7 @@ fn held(probe: &Path, seat: &Path, extra: &str) -> Value {
     );
     let sink = home
         .join("projects")
-        .join("world")
+        .join(namespace(seat))
         .join("logs")
         .join("world.log");
     let world = settle(&sink);
@@ -128,6 +129,13 @@ fn held(probe: &Path, seat: &Path, extra: &str) -> Value {
         .stderr(Stdio::null())
         .status();
     world
+}
+
+fn namespace(seat: &Path) -> String {
+    seat.file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("world")
+        .to_string()
 }
 
 fn settle(sink: &Path) -> Value {

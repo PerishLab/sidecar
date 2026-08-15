@@ -158,7 +158,8 @@ must pass before anything lands:
 
 ## Common Commands
 
-- Full gate: the six commands listed under Pre-PR Checks below.
+- Full gate: the commands listed under Pre-PR Checks below.
+- JS deps: `corepack enable && pnpm install --frozen-lockfile`
 - CLI smoke: `cargo run --locked -p sidecar -- doctor --config examples/minimal.toml`
 - Plan: `cargo run --locked -p sidecar -- plan --config examples/minimal.toml --format json`
 
@@ -167,6 +168,7 @@ must pass before anything lands:
 - `crates/core/`: `Manifest` config, diagnostics, plan, socket parser, stamp protocol, process discovery, inspect client.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`logs`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
 - `crates/cli/src/world.rs`: the unpublished `world` probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
+- `packages/sidecar/`: `@perish/sidecar`, the first language binding for the grant announcement. It is checked against the fixture, not against itself; `pnpm -r test` is part of the guard.
 - `sidecar.schema.jsonc` and `sidecar.fixture.jsonc`: the grant announcement vocabulary and the cases every language binding is checked against. The schema is load-bearing, not descriptive; `crates/cli/tests/world.rs` asserts the words sidecar announces are exactly the words it declares.
 - `plumb.toml`: product authority, binaries, and supported targets, for stable Plumb.
 - `DESIGN.md`: broker topology, the grant contract, and authority boundaries.
@@ -215,6 +217,9 @@ cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 cargo check --locked --workspace --all-targets --release
 cargo test --locked --workspace
+pnpm biome ci .
+pnpm -r exec tsc --noEmit
+pnpm -r test
 ectropy .
 ```
 
@@ -280,19 +285,10 @@ passes argv, environment, and working directory through untouched.
 
 ## Inspect bridge
 
-Wire format (one line per direction):
-
-```
-request:  {"kind":"event","id":"...","verb":"...","payload":<json>}\n
-response: {"kind":"event_response","id":"...","payload":<json>}\n
-       or {"kind":"event_error","id":"...","error":{"code":"...","message":"..."}}\n
-```
-
-When CLI inspect is called without an explicit payload, the request payload is `{}` rather than `null`; typed project protocols should treat this as the unit/no-input event shape.
-
-Default transport is Unix (`unix:///absolute/path.sock`). TCP is reserved for non-Unix fallback only.
-
-The implementation is `crates/core/src/inspect.rs`. The CLI orchestration is `commands::inspect` in `crates/cli/src/commands.rs`.
+DESIGN.md states the wire format. Default transport is Unix
+(`unix:///absolute/path.sock`); TCP is reserved for non-Unix fallback. The
+implementation is `crates/core/src/inspect.rs`, orchestrated by
+`commands::inspect` in `crates/cli/src/commands.rs`.
 
 ## Release
 

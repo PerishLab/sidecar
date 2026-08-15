@@ -2,6 +2,10 @@
 product = "sidecar"
 authority = "https://releases.sidecar.perish.uk"
 binaries = ["sidecar"]
+[release.npm]
+registry = "https://git.perish.top/api/packages/PerishLab/npm/"
+package = "@perish/sidecar"
+
 targets = [
   "x86_64-unknown-linux-gnu",
   "aarch64-apple-darwin",
@@ -11,10 +15,10 @@ targets = [
 
 [[document]]
 strategy = "agent"
-source = [{ path = ".", seal = "825d4e3bbb212b2c5467208eeb538e9911fca16439d0cc6d0a56c45e20d77fba" }]
-target-seal = "39996a4d575591f3f5b5279b19a573e412207437617611fbda40a8d466a277f4"
+source = [{ path = ".", seal = "03f048bc000f1dbe6467e6a7745e0a5f31fe738619d93dd6e30132cbdc3780b1" }]
+target-seal = "9be24c5b4d9929b88338f51b268b97fe4b219cd7deca4893dcbc56144fddb2d6"
 
 [[document]]
 strategy = "design"
-source = [{ path = ".", seal = "825d4e3bbb212b2c5467208eeb538e9911fca16439d0cc6d0a56c45e20d77fba" }]
-target-seal = "119cc517a1b7762dc51581f85467c77332145e7ead3fe3034eba1d0b32166786"
+source = [{ path = ".", seal = "03f048bc000f1dbe6467e6a7745e0a5f31fe738619d93dd6e30132cbdc3780b1" }]
+target-seal = "8d527a8599c4ad51ae6034030de16fe0fa7ab71c566b96c767876779b921d787"

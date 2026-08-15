@@ -8,53 +8,53 @@
 //
 // Comments here are whole-line // only, so a reader may strip them by that rule.
 {
-  "schemaVersion": 1,
-  "cases": [
-    {
-      "name": "granted",
-      "environment": {
-        "SIDECAR_PORT": "4287",
-        "SIDECAR_INSPECT_SOCKET": "unix:///tmp/sidecar-design-preview.sock",
-        "SIDECAR_BROKER": "tcp://127.0.0.1:40761"
-      },
-      "expects": {
-        "port": "4287",
-        "inspect_socket": "unix:///tmp/sidecar-design-preview.sock",
-        "broker": "tcp://127.0.0.1:40761"
-      }
-    },
-    {
-      "name": "ungranted",
-      "environment": {},
-      "expects": {
-        "port": null,
-        "inspect_socket": null,
-        "broker": null
-      }
-    },
-    {
-      "name": "partial",
-      "environment": {
-        "SIDECAR_BROKER": "tcp://127.0.0.1:40761"
-      },
-      "expects": {
-        "port": null,
-        "inspect_socket": null,
-        "broker": "tcp://127.0.0.1:40761"
-      }
-    },
-    {
-      "name": "unknown words are ignored",
-      "environment": {
-        "SIDECAR_PORT": "4287",
-        "SIDECAR_FUTURE": "a word this schema version does not carry",
-        "PORT": "8080"
-      },
-      "expects": {
-        "port": "4287",
-        "inspect_socket": null,
-        "broker": null
-      }
-    }
-  ]
+	"schemaVersion": 1,
+	"cases": [
+		{
+			"name": "granted",
+			"environment": {
+				"SIDECAR_PORT": "4287",
+				"SIDECAR_INSPECT_SOCKET": "unix:///tmp/sidecar-design-preview.sock",
+				"SIDECAR_BROKER": "tcp://127.0.0.1:40761"
+			},
+			"expects": {
+				"port": "4287",
+				"inspect_socket": "unix:///tmp/sidecar-design-preview.sock",
+				"broker": "tcp://127.0.0.1:40761"
+			}
+		},
+		{
+			"name": "ungranted",
+			"environment": {},
+			"expects": {
+				"port": null,
+				"inspect_socket": null,
+				"broker": null
+			}
+		},
+		{
+			"name": "partial",
+			"environment": {
+				"SIDECAR_BROKER": "tcp://127.0.0.1:40761"
+			},
+			"expects": {
+				"port": null,
+				"inspect_socket": null,
+				"broker": "tcp://127.0.0.1:40761"
+			}
+		},
+		{
+			"name": "unknown words are ignored",
+			"environment": {
+				"SIDECAR_PORT": "4287",
+				"SIDECAR_FUTURE": "a word this schema version does not carry",
+				"PORT": "8080"
+			},
+			"expects": {
+				"port": "4287",
+				"inspect_socket": null,
+				"broker": null
+			}
+		}
+	]
 }

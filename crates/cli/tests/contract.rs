@@ -54,3 +54,20 @@ fn judge(case: &Value, terms: &BTreeMap<String, String>) {
         );
     }
 }
+
+#[test]
+fn tree() {
+    let schema = schema();
+    let terms: Vec<String> = schema
+        .values()
+        .map(|spec| spec["term"].as_str().expect("term").to_string())
+        .collect();
+    for one in &terms {
+        let stem = format!("{one}_");
+        let nested = terms.iter().find(|other| other.starts_with(&stem));
+        assert!(
+            nested.is_none(),
+            "term {one:?} is a stem of {nested:?}; a binding that nests on term segments cannot render both"
+        );
+    }
+}

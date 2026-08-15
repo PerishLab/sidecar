@@ -2,19 +2,25 @@
 allow = false
 
 [[grant]]
-paths = ["crates/*/tests/**/*.rs"]
+paths = [
+    "crates/*/tests/**/*.rs",
+    "packages/*/tests/**/*.test.ts",
+    "packages/*/tests/**/*.test.tsx",
+]
 syntax = "test"
 
 [[grant]]
 paths = [
-  "crates/cli/src/args.rs",
-  "crates/cli/src/commands.rs",
-  "crates/cli/src/commands/runtime.rs",
-  "crates/cli/src/main.rs",
-  "crates/cli/src/update.rs",
-  "crates/core/src/paths.rs",
-  "crates/cli/src/world.rs",
-  "crates/*/tests/**/*.rs",
+    "crates/*/tests/**/*.rs",
+    "crates/cli/src/args.rs",
+    "crates/cli/src/commands.rs",
+    "crates/cli/src/commands/runtime.rs",
+    "crates/cli/src/main.rs",
+    "crates/cli/src/update.rs",
+    "crates/cli/src/world.rs",
+    "crates/core/src/paths.rs",
+    "packages/*/tests/**/*.test.ts",
+    "packages/*/tests/**/*.test.tsx",
 ]
 syntax = "environment"
 
@@ -28,16 +34,27 @@ path = 4
 
 [module]
 roots = [
-  "crates/*/src",
-  "crates/*/tests",
-  "docs",
+    "crates/*/src",
+    "crates/*/tests",
+    "docs",
+    "packages/*/lib",
+    "packages/*/src",
+    "packages/*/tests",
 ]
 
 [scan]
-exclude = ["**/target/**"]
+exclude = [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/target/**",
+]
 include = [
-  "crates/**/*.rs",
-  "docs/**/*.md",
+    "crates/**/*.rs",
+    "docs/**/*.md",
+    "packages/**/*.css",
+    "packages/**/*.scss",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
 ]
 
 [word]

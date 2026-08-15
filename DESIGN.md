@@ -40,6 +40,11 @@ asserts that the set of words sidecar actually announces equals the set the
 schema declares, and that each value matches its declared form, so the file
 cannot drift from the emitter.
 
+A term's underscores are segments, and no term may be a stem of another. A
+binding is free to render segments as nesting -- `inspect_socket` reads as
+`inspect.socket` where that is idiomatic -- so `broker` beside `broker_endpoint`
+would ask one name to be both a leaf and a branch.
+
 `sidecar.fixture.jsonc` is what a language binding is checked against. The
 fixture, not the first binding written, is the contract's truth: each case gives
 an environment and the grants a conforming binding must expose from it. A
@@ -75,6 +80,17 @@ the namespace remains. No endpoint file or deterministic port window exists.
 The broker is runtime discovery infrastructure, not a business endpoint.
 Project inspect remains a target-local single-event bridge. Sidecar owns the
 line-delimited envelope and timeout; the project owns event names and schemas.
+
+The wire carries one line per direction:
+
+```
+request:  {"kind":"event","id":"...","verb":"...","payload":<json>}
+response: {"kind":"event_response","id":"...","payload":<json>}
+       or {"kind":"event_error","id":"...","error":{"code":"...","message":"..."}}
+```
+
+Inspect called without an explicit payload sends `{}` rather than `null`; a
+typed project protocol reads that as the unit event shape.
 
 Unix sockets are canonical for inspect. TCP is reserved for fallback and
 compatibility probes. Process status reports Sidecar-known identity, pids,
