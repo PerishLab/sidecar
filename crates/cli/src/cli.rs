@@ -1,9 +1,10 @@
 use crate::args::Global;
 use crate::help::help;
 use crate::update;
-use crate::{broker, commands, output};
+use crate::{commands, output};
 use clap::{Parser, Subcommand};
 use sidecar_core::Severity;
+use std::path::Path;
 use std::time::Duration;
 
 pub(crate) mod default {
@@ -86,6 +87,12 @@ pub(crate) enum Runtime {
         #[arg(long = "sidecar-broker")]
         broker: Option<String>,
     },
+    Host {
+        #[arg(long = "sidecar-stamp")]
+        stamp: String,
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        command: Vec<String>,
+    },
 }
 
 pub fn run(args: Vec<String>) -> Result<(), String> {
@@ -109,18 +116,11 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
     };
     let global = &cli.global;
 
-    if let Some(home) = &global.home {
-        unsafe { std::env::set_var("SIDECAR_DATA_HOME", home) };
-    }
-    if let Some(project) = &global.project {
-        unsafe { std::env::set_var("SIDECAR_PROJECT", project) };
-    }
-
     if !matches!(
         verb,
         Verb::Help | Verb::Version | Verb::Update | Verb::Runtime { .. }
     ) {
-        update::notice(version(), channel());
+        update::notice(version(), channel(), global.home.as_deref().map(Path::new));
     }
 
     match verb {
@@ -133,12 +133,12 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
             Ok(())
         }
         Verb::Update => update::run(channel()),
-        Verb::Runtime { cmd } => {
-            let Runtime::Serve {
+        Verb::Runtime { cmd } => match cmd {
+            Runtime::Serve {
                 project, namespace, ..
-            } = cmd;
-            broker::serve(&project, &namespace)
-        }
+            } => commands::broker::serve(&project, &namespace),
+            Runtime::Host { command, .. } => commands::host(&command),
+        },
         Verb::Doctor => {
             let state = global.state()?;
             let diagnostics = state.diagnostics();
@@ -198,100 +198,5 @@ fn inspect(
             };
             session.inspect(&probe, global.format)
         }
-    }
-}
-
-#[doc(hidden)]
-pub mod __test {
-    use super::{Cli, Format, Runtime, Verb};
-    use clap::Parser;
-
-    #[derive(Debug, Eq, PartialEq)]
-    pub struct Summary {
-        pub command: Vec<String>,
-        pub config: Option<String>,
-        pub format: &'static str,
-        pub home: Option<String>,
-        pub project: Option<String>,
-        pub timeout: u64,
-        pub all: bool,
-        pub force: bool,
-    }
-
-    fn reconstruct(verb: Option<&Verb>) -> Vec<String> {
-        let Some(verb) = verb else {
-            return Vec::new();
-        };
-        match verb {
-            Verb::Doctor => vec!["doctor".to_string()],
-            Verb::Plan => vec!["plan".to_string()],
-            Verb::Inspect {
-                first,
-                event,
-                payload,
-            } => {
-                let mut command = vec!["inspect".to_string()];
-                command.extend(first.clone());
-                command.extend(event.clone());
-                command.extend(payload.clone());
-                command
-            }
-            Verb::Start { sidecar } => once("start", sidecar),
-            Verb::Restart { sidecar } => once("restart", sidecar),
-            Verb::Stop { sidecar } => once("stop", sidecar),
-            Verb::Status => vec!["status".to_string()],
-            Verb::List => vec!["list".to_string()],
-            Verb::Reset => vec!["reset".to_string()],
-            Verb::Update => vec!["update".to_string()],
-            Verb::Runtime { cmd } => {
-                let Runtime::Serve {
-                    project,
-                    namespace,
-                    broker,
-                } = cmd;
-                let mut command = vec![
-                    "runtime".to_string(),
-                    "serve".to_string(),
-                    project.clone(),
-                    namespace.clone(),
-                ];
-                if let Some(broker) = broker {
-                    command.push(format!("--sidecar-broker={broker}"));
-                }
-                command
-            }
-            Verb::Version => vec!["version".to_string()],
-            Verb::Help => vec!["help".to_string()],
-        }
-    }
-
-    fn once(verb: &str, sidecar: &Option<String>) -> Vec<String> {
-        let mut command = vec![verb.to_string()];
-        command.extend(sidecar.clone());
-        command
-    }
-
-    pub fn parse(args: Vec<&str>) -> Result<Summary, String> {
-        let cli = Cli::try_parse_from(args).map_err(|error| error.to_string())?;
-        let global = &cli.global;
-        let format = match global.format {
-            Format::Text => "text",
-            Format::Json => "json",
-        };
-        Ok(Summary {
-            command: reconstruct(cli.command.as_ref()),
-            config: global.config.clone(),
-            format,
-            home: global.home.clone(),
-            project: global.project.clone(),
-            timeout: global.timeout,
-            all: global.all,
-            force: global.force,
-        })
-    }
-
-    pub fn locate(explicit: Option<&str>) -> Result<(String, bool), String> {
-        let (path, discovered) = crate::args::locate(explicit)?;
-        Ok((path.display().to_string(), discovered))
     }
 }

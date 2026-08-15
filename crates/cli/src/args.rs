@@ -95,3 +95,112 @@ fn seconds(value: &str) -> Result<u64, String> {
     }
     Ok(parsed)
 }
+
+#[doc(hidden)]
+pub mod __test {
+    use crate::cli::{Cli, Format, Runtime, Verb};
+    use clap::Parser;
+
+    #[derive(Debug, Eq, PartialEq)]
+    pub struct Summary {
+        pub command: Vec<String>,
+        pub config: Option<String>,
+        pub format: &'static str,
+        pub home: Option<String>,
+        pub project: Option<String>,
+        pub timeout: u64,
+        pub all: bool,
+        pub force: bool,
+    }
+
+    fn reconstruct(verb: Option<&Verb>) -> Vec<String> {
+        let Some(verb) = verb else {
+            return Vec::new();
+        };
+        match verb {
+            Verb::Doctor => vec!["doctor".to_string()],
+            Verb::Plan => vec!["plan".to_string()],
+            Verb::Inspect {
+                first,
+                event,
+                payload,
+            } => {
+                let mut command = vec!["inspect".to_string()];
+                command.extend(first.clone());
+                command.extend(event.clone());
+                command.extend(payload.clone());
+                command
+            }
+            Verb::Start { sidecar } => once("start", sidecar),
+            Verb::Restart { sidecar } => once("restart", sidecar),
+            Verb::Stop { sidecar } => once("stop", sidecar),
+            Verb::Status => vec!["status".to_string()],
+            Verb::List => vec!["list".to_string()],
+            Verb::Reset => vec!["reset".to_string()],
+            Verb::Update => vec!["update".to_string()],
+            Verb::Runtime { cmd } => runtime(cmd),
+            Verb::Version => vec!["version".to_string()],
+            Verb::Help => vec!["help".to_string()],
+        }
+    }
+
+    fn runtime(cmd: &Runtime) -> Vec<String> {
+        match cmd {
+            Runtime::Serve {
+                project,
+                namespace,
+                broker,
+            } => {
+                let mut command = vec![
+                    "runtime".to_string(),
+                    "serve".to_string(),
+                    project.clone(),
+                    namespace.clone(),
+                ];
+                if let Some(broker) = broker {
+                    command.push(format!("--sidecar-broker={broker}"));
+                }
+                command
+            }
+            Runtime::Host { stamp, command } => {
+                let mut argv = vec![
+                    "runtime".to_string(),
+                    "host".to_string(),
+                    format!("--sidecar-stamp={stamp}"),
+                ];
+                argv.extend(command.clone());
+                argv
+            }
+        }
+    }
+
+    fn once(verb: &str, sidecar: &Option<String>) -> Vec<String> {
+        let mut command = vec![verb.to_string()];
+        command.extend(sidecar.clone());
+        command
+    }
+
+    pub fn parse(args: Vec<&str>) -> Result<Summary, String> {
+        let cli = Cli::try_parse_from(args).map_err(|error| error.to_string())?;
+        let global = &cli.global;
+        let format = match global.format {
+            Format::Text => "text",
+            Format::Json => "json",
+        };
+        Ok(Summary {
+            command: reconstruct(cli.command.as_ref()),
+            config: global.config.clone(),
+            format,
+            home: global.home.clone(),
+            project: global.project.clone(),
+            timeout: global.timeout,
+            all: global.all,
+            force: global.force,
+        })
+    }
+
+    pub fn locate(explicit: Option<&str>) -> Result<(String, bool), String> {
+        let (path, discovered) = super::locate(explicit)?;
+        Ok((path.display().to_string(), discovered))
+    }
+}

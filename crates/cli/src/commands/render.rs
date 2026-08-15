@@ -7,6 +7,7 @@ use sidecar_core::process::Stamped;
 pub(super) struct Row {
     pub(super) name: String,
     pub(super) pids: Vec<u32>,
+    pub(super) target: Option<u32>,
     pub(super) health: Option<String>,
 }
 
@@ -60,7 +61,7 @@ mod text {
             if let Some(first) = row.pids.first() {
                 println!("{}", line(row, *first));
                 for extra in row.pids.iter().skip(1) {
-                    println!("  + duplicate (pid {})", extra);
+                    println!("  + stamped (pid {})", extra);
                 }
             } else {
                 println!("- {}: stopped", row.name);
@@ -69,10 +70,11 @@ mod text {
         Ok(())
     }
 
-    fn line(row: &Row, pid: u32) -> String {
+    fn line(row: &Row, host: u32) -> String {
+        let pid = row.target.unwrap_or(host);
         match &row.health {
-            Some(health) => format!("- {}: running (pid {pid}) {health}", row.name),
-            None => format!("- {}: running (pid {pid})", row.name),
+            Some(health) => format!("- {}: running (pid {pid}, host {host}) {health}", row.name),
+            None => format!("- {}: running (pid {pid}, host {host})", row.name),
         }
     }
 
@@ -132,7 +134,8 @@ mod json {
             "targets": rows.iter().map(|row| serde_json::json!({
                 "name": row.name,
                 "running": !row.pids.is_empty(),
-                "pids": row.pids,
+                "pid": row.target,
+                "hosts": row.pids,
                 "healthUrl": row.health,
             })).collect::<Vec<_>>(),
         });

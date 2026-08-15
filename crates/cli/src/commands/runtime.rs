@@ -1,3 +1,4 @@
+use super::grant::Grants;
 use super::ready::{Ready, kill, sanitize, scan, wait};
 use serde_json::Value;
 use sidecar_core::plan::{Plan, Target};
@@ -16,10 +17,11 @@ pub(crate) struct Status {
 #[derive(Clone, Debug)]
 
 pub(crate) struct Launch {
+    pub(crate) host: u32,
     pub(crate) pid: u32,
     pub(crate) ready: Option<Ready>,
     pub(crate) log: std::path::PathBuf,
-    pub(crate) port: Option<u16>,
+    pub(crate) grants: Grants,
 }
 
 pub(crate) struct Broker<'a> {
@@ -178,13 +180,13 @@ pub(crate) mod state {
         state.insert(
             target.name.clone(),
             serde_json::json!({
-                "pid": launch.pid,
+                "pid": launch.host,
+                "target": launch.pid,
                 "app": target.stamp.app,
                 "namespace": target.stamp.namespace,
                 "mode": target.stamp.mode,
                 "source": target.stamp.source,
-                "inspectSocket": target.socket,
-                "port": launch.port,
+                "grants": launch.grants.record(),
                 "logPath": launch.log.display().to_string(),
                 "ready": launch.ready.as_ref().map(|ready| serde_json::json!({
                     "role": ready.role,

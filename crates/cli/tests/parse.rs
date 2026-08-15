@@ -11,10 +11,8 @@ fn boundary() {
     assert!(help.contains("--force"));
     assert!(help.contains("when omitted, sidecar walks"));
     assert!(help.contains("like docker compose -p"));
-    assert!(
-        help.contains("--sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>;e=<endpoint>")
-    );
-    assert!(help.contains("README.md for usage/schema"));
+    assert!(help.contains("--sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>;"));
+    assert!(help.contains("DESIGN.md for the model"));
     assert!(help.contains("AGENTS.md for boundaries and PR workflow"));
     assert!(help.contains("Source:  https://git.perish.top/PerishFire/sidecar"));
     assert!(help.contains("https://git.perish.top/PerishFire/sidecar/issues"));

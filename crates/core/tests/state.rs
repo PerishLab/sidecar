@@ -84,7 +84,7 @@ fn empty() {
 }
 
 #[test]
-fn warned() {
+fn untouched() {
     let state = seed(
         r#"
         [project]
@@ -97,10 +97,12 @@ fn warned() {
         "#,
     );
 
-    let diagnostics = state.diagnostics();
-    assert!(diagnostics.iter().any(|diagnostic| {
-        diagnostic.path == "sidecars[0].args" && diagnostic.message.contains("--sidecar-stamp")
-    }));
+    assert!(state.diagnostics().is_empty());
+    let plan = state.plan().expect("plan");
+    assert_eq!(
+        plan.targets[0].args,
+        vec!["run", "--quiet", "-p", "server-cell"]
+    );
 }
 
 #[test]
@@ -173,7 +175,7 @@ fn planned() {
 }
 
 #[test]
-fn endpoint() {
+fn marked() {
     let state = seed(
         r#"
         [project]
@@ -186,13 +188,17 @@ fn endpoint() {
     );
 
     let plan = state.plan().expect("plan");
-    let args = plan.targets[0].launch("tcp://127.0.0.1:4100");
-    let stamp = args
-        .iter()
-        .find(|arg| arg.starts_with("--sidecar-stamp="))
-        .expect("stamp arg should exist");
-    assert!(stamp.contains("v=1;"));
-    assert!(stamp.contains(";e=tcp%3A%2F%2F127.0.0.1%3A4100"));
+    let target = &plan.targets[0];
+    assert!(
+        !target
+            .args
+            .iter()
+            .any(|arg| arg.starts_with("--sidecar-stamp=")),
+        "the target's own arguments carry no stamp"
+    );
+    let stamp = target.stamp.args().join(" ");
+    assert!(stamp.starts_with("--sidecar-stamp=v=1;"));
+    assert!(!stamp.contains(";e="));
 }
 
 #[test]

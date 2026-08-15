@@ -71,7 +71,7 @@ mod text {
                 "- {} [mode={}] -> {}",
                 target.name,
                 target.stamp.mode,
-                line(&target.command, &target.argv())
+                line(&target.command, &target.args)
             );
             if let Some(socket) = &target.socket {
                 println!("    inspect_socket: {socket}");
@@ -142,7 +142,7 @@ mod json {
             "args": app.args,
             "cwd": app.cwd,
             "stamp": stamp(&app.stamp),
-            "spawnArgs": app.argv(),
+            "spawnArgs": app.args,
             "inheritsEnv": inherits(&app.inherits),
             "inspectSocket": app.socket,
             "healthUrl": app.health,
@@ -157,7 +157,7 @@ mod json {
             "args": target.args,
             "cwd": target.cwd,
             "stamp": stamp(&target.stamp),
-            "spawnArgs": target.argv(),
+            "spawnArgs": target.args,
             "inheritsEnv": inherits(&target.inherits),
             "inspectSocket": target.socket,
             "healthUrl": target.health,
@@ -175,7 +175,7 @@ mod json {
             "args": sidecar.args,
             "cwd": sidecar.cwd,
             "stamp": stamp(&sidecar.stamp),
-            "spawnArgs": sidecar.argv(),
+            "spawnArgs": sidecar.args,
             "inheritsEnv": inherits(&sidecar.inherits),
             "inspectSocket": sidecar.socket,
             "healthUrl": sidecar.health,
@@ -189,7 +189,6 @@ mod json {
             "namespace": stamp.namespace,
             "mode": stamp.mode,
             "source": stamp.source,
-            "endpoint": stamp.endpoint,
         })
     }
 

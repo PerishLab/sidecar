@@ -11,9 +11,16 @@ namespace, targets, command shape, working directory, static environment,
 managed port, readiness, status identity, inspect socket, stop behavior, and
 reset boundary. Product meaning never enters the manifest grammar.
 
-Every target receives one packed `--sidecar-stamp` argument. Its version, app,
-namespace, mode, source, and runtime endpoint fields are Sidecar's only launch
-metadata contract. There is no environment fallback for identity or endpoint.
+Every target is raised by a thin host parent that carries one packed
+`--sidecar-stamp` argument. Its version, app, namespace, mode, and source fields
+mark that parent for the process table. The target's own command line is exactly
+what the manifest declares, so no third-party argument parser ever meets a
+sidecar flag.
+
+Leased resources reach a target through the grant table instead. Each term is
+announced as one `SIDECAR_<TERM>` environment word and templated into manifest
+values as `{term}`. Sidecar grants and announces; it never binds, fences, or
+injects into the target's own arguments.
 
 ## Broker
 

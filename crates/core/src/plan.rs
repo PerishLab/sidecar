@@ -160,7 +160,6 @@ impl config::App {
             namespace: project.namespace.clone(),
             mode: self.mode.clone(),
             source: stamp::default::SOURCE.to_string(),
-            endpoint: None,
         };
         let socket = match &self.socket {
             Some(value) => Some(expand(value, project, &self.name)?),
@@ -190,7 +189,6 @@ impl config::Sidecar {
             namespace: project.namespace.clone(),
             mode: self.mode.clone(),
             source: stamp::default::SOURCE.to_string(),
-            endpoint: None,
         };
         let socket = match &self.socket {
             Some(value) => Some(expand(value, project, &self.name)?),
@@ -237,36 +235,6 @@ impl config::Endpoint {
             kind: self.kind.clone(),
             url: self.url.clone(),
         }
-    }
-}
-
-impl App {
-    pub fn argv(&self) -> Vec<String> {
-        let mut argv = self.args.clone();
-        argv.extend(self.stamp.args());
-        argv
-    }
-}
-
-impl Sidecar {
-    pub fn argv(&self) -> Vec<String> {
-        let mut argv = self.args.clone();
-        argv.extend(self.stamp.args());
-        argv
-    }
-}
-
-impl Target {
-    pub fn argv(&self) -> Vec<String> {
-        let mut argv = self.args.clone();
-        argv.extend(self.stamp.args());
-        argv
-    }
-
-    pub fn launch(&self, endpoint: &str) -> Vec<String> {
-        let mut argv = self.args.clone();
-        argv.extend(self.stamp.at(endpoint).args());
-        argv
     }
 }
 

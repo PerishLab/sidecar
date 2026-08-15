@@ -2,12 +2,13 @@
 
 ## Purpose
 
-`sidecar` is the standalone home for an IPC-based sidecars project manager. It owns four product-neutral abstractions:
+`sidecar` is the standalone home for an IPC-based sidecars project manager. It owns five product-neutral abstractions:
 
 1. **Manifest-closed lifecycle** — `sidecar.toml` defines command/cwd/args/env/stamps/readiness/inspect/status/stop/reset for every target.
-2. **Stamp args** — a packed `--sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>;e=<endpoint>` flag appended to every spawned target; it is the only sidecar launch metadata contract.
-3. **Broker runtime** — one project/namespace-scoped loopback TCP broker discovered from `--sidecar-broker` argv identity plus live listener probing; targets receive the broker endpoint through the stamp `e` field.
-4. **Inspect bridge** — a single-shot SidecarRuntime event frame over a Unix socket (TCP fallback) for talking to a running sidecar's inspect server.
+2. **Host and stamp** — every target is raised by a thin `sidecar runtime host` parent that carries the packed `--sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>` flag. The target's own command line is exactly what the manifest declares.
+3. **Grants** — leased resources reach a target as `SIDECAR_<TERM>` environment words and as `{term}` templates in manifest values, never as injected command-line arguments.
+4. **Broker runtime** — one project/namespace-scoped loopback TCP broker discovered from `--sidecar-broker` argv identity plus live listener probing; targets receive its endpoint through the `SIDECAR_BROKER` grant word.
+5. **Inspect bridge** — a single-shot SidecarRuntime event frame over a Unix socket (TCP fallback) for talking to a running sidecar's inspect server.
 
 This repository is not a `stim.io` module. `stim.io` and other consumers install
 `sidecar` through the stable managers generated from `plumb.toml`.
@@ -128,11 +129,19 @@ install; it never follows a non-stable channel manager.
 the `RUNSEAL_REPO_*` and `SIDECAR_REPO_*` values into ignored `.local/`
 seats and carries no command or lifecycle behavior.
 
-Use `runseal profile` to validate the resolved profile and
-`runseal : <command> [args...]` when a command needs those environment values.
-Generic guard, init, land, and release behavior belongs to the workshop
-substrate or canonical workflow. This repository carries no Deno, filesystem
-wrapper, or repository-owned Git hook.
+Use `runseal profile` to validate the resolved profile and `runseal : <command>`
+when a command needs those values. Generic guard, init, land, and release
+behavior belongs to the workshop substrate or canonical workflow. This
+repository carries no Deno, filesystem wrapper, or repository-owned Git hook.
+
+## Spawn Residue
+
+`crates/cli/tests/world.rs` spawns the probe bare and through sidecar, then
+asserts the differing observations equal a declared residue exactly. Equality,
+not containment: a smaller difference means the declaration is wrong, not the
+spawn improved. Anything beyond `pid`, `ppid`, and the group is owed debt.
+The proof runs on Linux and macOS; the Windows lane still only builds, because
+the suite is not Windows-clean and the probe reports no parent or group there.
 
 ## Constitution
 
@@ -149,19 +158,15 @@ must pass before anything lands:
 
 ## Common Commands
 
-- Format: `cargo fmt --all --check`
-- Test: `cargo test --locked --workspace`
-- Clippy: `cargo clippy --locked --workspace --all-targets -- -D warnings`
-- CLI smoke: `cargo run --locked -p cli -- doctor --config examples/minimal.toml`
-- Plan: `cargo run --locked -p cli -- plan --config examples/minimal.toml --format json`
-- Repository check: `plumb doctor . && ectropy .`
-- Profiled test: `runseal : cargo test --locked --workspace`
-- Full gate: run every validation command above plus `plumb doctor . && ectropy .`
+- Full gate: the six commands listed under Pre-PR Checks below.
+- CLI smoke: `cargo run --locked -p sidecar -- doctor --config examples/minimal.toml`
+- Plan: `cargo run --locked -p sidecar -- plan --config examples/minimal.toml --format json`
 
 ## Repository Shape
 
 - `crates/core/`: `Manifest` config, diagnostics, plan, socket parser, stamp protocol, process discovery, inspect client.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
+- `crates/cli/src/world.rs`: the unpublished `world` probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
 - `plumb.toml`: product authority, binaries, and supported targets consumed by
   stable Plumb.
 - `DESIGN.md`: current broker topology and authority boundaries.
@@ -246,15 +251,32 @@ repository wrapper or Git hook to make landing locally discoverable.
 
 ## Stamp args protocol
 
-Canonical flag name (consumers must accept and ignore it on their sidecar binaries):
+Canonical flag name. It lands on the host process, never on the target's command line, so no consumer has to accept or ignore anything:
 
 ```
---sidecar-stamp=v=1;a=<sidecar.name>;n=<project.namespace>;m=<sidecar.mode>;s=tool%3Asidecar;e=<runtime-endpoint>
+--sidecar-stamp=v=1;a=<sidecar.name>;n=<project.namespace>;m=<sidecar.mode>;s=tool%3Asidecar
 ```
 
-The short keys are `v` (stamp protocol version), `a` (app/workload), `n` (namespace), `m` (mode), `s` (source), and `e` (sidecar runtime endpoint locator). Values are percent-encoded; for example `tool:sidecar` is encoded as `tool%3Asidecar`. Discovery uses only this flag via `ps -axo pid=,command=` on Unix and the Windows PowerShell `Win32_Process` query on Windows; the implementation is in `crates/core/src/runtime/process.rs`.
+The short keys are `v` (stamp protocol version), `a` (app/workload), `n` (namespace), `m` (mode), and `s` (source). Values are percent-encoded; for example `tool:sidecar` is encoded as `tool%3Asidecar`. Discovery uses only this flag, read from `/proc` on Linux, `ps -axo pid=,command=` on other Unix, and the PowerShell `Win32_Process` query on Windows. Signals go through `libc::kill` rather than a `kill` binary, so the lifecycle needs no `procps` on Linux. The implementation is in `crates/core/src/runtime/process.rs`.
 
-The stamp is the single source of truth for sidecar launch metadata. Do not add env fallbacks or sibling sidecar argv flags for control-plane metadata. Future sidecar launch fields must be encoded inside this stamp contract.
+The stamp marks; the grant announcement configures. A fact a target must read belongs in a `SIDECAR_<TERM>` word derived from the grant table. A fact only the process table must carry belongs in the stamp, on the host. Do not add sibling sidecar argv flags for either.
+
+## Host
+
+`sidecar runtime host --sidecar-stamp=<packed> -- <command> [args...]` is the
+only way a target is raised. There is no manifest switch, no opt-out, and no
+direct-spawn path; this domain does not keep a second truth. `status` reports the
+target's own pid and renders the host beside it; a host pid is never presented as
+the target's.
+
+The host is closed by five laws. It holds **no policy** — no restart, backoff,
+reordering, or health opinion. It keeps **no state** — `targets.json` stays with
+the CLI. It opens **no persistent channel** — it never listens and is not
+addressable; its one permitted signal is a single startup handshake on its
+inherited stdout, reporting the target pid or the spawn error, written once. It
+takes **no extra lifetime** — it exits when the target exits. It performs **no
+transformation** — it inherits the log handle rather than opening one, and
+passes argv, environment, and working directory through untouched.
 
 ## Inspect bridge
 
