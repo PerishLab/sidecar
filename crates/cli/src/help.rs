@@ -31,7 +31,7 @@ Global flags:
 
 Model:
   Manifest: [project], optional [app], repeated [[sidecars]], ready/env/inspect
-  fields, and optional [[inspect.endpoints]]. See README.md for the schema.
+  fields, and optional [[inspect.endpoints]]. See DESIGN.md for the schema.
   Lifecycle: command/cwd/args/env/stamps/ready/inspect/stop/reset close in manifest.
   Stamps: --sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>;e=<endpoint>;
   values are percent-encoded; the stamp is the only sidecar launch metadata.
@@ -51,6 +51,6 @@ Exit shape:
 Project:
   Source:  https://git.perish.top/PerishFire/sidecar
   Issues:  https://git.perish.top/PerishFire/sidecar/issues
-  Details: README.md for usage/schema; AGENTS.md for boundaries and PR workflow.
+  Details: DESIGN.md for the model; AGENTS.md for boundaries and PR workflow.
 "#
 }

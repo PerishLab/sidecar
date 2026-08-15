@@ -152,8 +152,8 @@ must pass before anything lands:
 - Format: `cargo fmt --all --check`
 - Test: `cargo test --locked --workspace`
 - Clippy: `cargo clippy --locked --workspace --all-targets -- -D warnings`
-- CLI smoke: `cargo run --locked -p cli -- doctor --config examples/minimal.toml`
-- Plan: `cargo run --locked -p cli -- plan --config examples/minimal.toml --format json`
+- CLI smoke: `cargo run --locked -p sidecar -- doctor --config examples/minimal.toml`
+- Plan: `cargo run --locked -p sidecar -- plan --config examples/minimal.toml --format json`
 - Repository check: `plumb doctor . && ectropy .`
 - Profiled test: `runseal : cargo test --locked --workspace`
 - Full gate: run every validation command above plus `plumb doctor . && ectropy .`
