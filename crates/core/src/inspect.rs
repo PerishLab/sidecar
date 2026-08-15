@@ -1,9 +1,5 @@
-use crate::socket;
+use crate::runtime::bridge;
 use serde_json::Value;
-use std::io::{BufRead, BufReader, Write};
-use std::net::TcpStream;
-#[cfg(unix)]
-use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
 #[derive(Clone, Debug)]
@@ -19,9 +15,9 @@ pub enum Response {
 }
 
 pub fn send(
-    endpoint: &socket::Endpoint,
+    bridge: &bridge::Bridge,
     request: &Request,
-    timeout: Option<Duration>,
+    patience: Option<Duration>,
 ) -> Result<Response, String> {
     let id = id();
     let mut line = serde_json::to_string(&serde_json::json!({
@@ -33,10 +29,7 @@ pub fn send(
     .map_err(|err| err.to_string())?;
     line.push('\n');
 
-    let raw = match endpoint {
-        socket::Endpoint::Unix(path) => unix(path, &line, timeout)?,
-        socket::Endpoint::Tcp(addr) => tcp(addr, &line, timeout)?,
-    };
+    let raw = bridge.exchange(&line, patience)?;
     parse(&raw, &id)
 }
 
@@ -85,50 +78,6 @@ fn describe(value: &Value) -> String {
         .and_then(Value::as_str)
         .unwrap_or("inspect endpoint returned event_error");
     format!("{code}: {message}")
-}
-
-#[cfg(unix)]
-fn unix(
-    path: &std::path::PathBuf,
-    line: &str,
-    timeout: Option<Duration>,
-) -> Result<String, String> {
-    let mut stream = UnixStream::connect(path).map_err(|err| err.to_string())?;
-    if let Some(timeout) = timeout {
-        let _ = stream.set_read_timeout(Some(timeout));
-        let _ = stream.set_write_timeout(Some(timeout));
-    }
-    stream
-        .write_all(line.as_bytes())
-        .map_err(|err| err.to_string())?;
-    let mut reader = BufReader::new(stream);
-    let mut response = String::new();
-    reader
-        .read_line(&mut response)
-        .map_err(|err| err.to_string())?;
-    Ok(response)
-}
-
-#[cfg(not(unix))]
-fn unix(_: &std::path::PathBuf, _: &str, _: Option<Duration>) -> Result<String, String> {
-    Err("unix inspect transport is not available on this platform".to_string())
-}
-
-fn tcp(addr: &str, line: &str, timeout: Option<Duration>) -> Result<String, String> {
-    let mut stream = TcpStream::connect(addr).map_err(|err| err.to_string())?;
-    if let Some(timeout) = timeout {
-        let _ = stream.set_read_timeout(Some(timeout));
-        let _ = stream.set_write_timeout(Some(timeout));
-    }
-    stream
-        .write_all(line.as_bytes())
-        .map_err(|err| err.to_string())?;
-    let mut reader = BufReader::new(stream);
-    let mut response = String::new();
-    reader
-        .read_line(&mut response)
-        .map_err(|err| err.to_string())?;
-    Ok(response)
 }
 
 fn id() -> String {

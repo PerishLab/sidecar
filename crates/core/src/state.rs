@@ -1,7 +1,6 @@
 use crate::config::Manifest;
 use crate::diagnostics::Diagnostic;
 use crate::plan::Plan;
-use crate::socket;
 use std::collections::HashSet;
 use std::fmt;
 use std::fs;
@@ -52,11 +51,6 @@ impl State {
             require(&mut diagnostics, "app.name", &app.name);
             require(&mut diagnostics, "app.command", &app.command);
             require(&mut diagnostics, "app.mode", &app.mode);
-            if let Some(socket) = &app.socket
-                && let Err(error) = socket::Endpoint::parse(socket)
-            {
-                diagnostics.push(Diagnostic::error("app.inspect_socket", error.to_string()));
-            }
             if let Some(ready) = &app.ready {
                 require(&mut diagnostics, "app.ready.role", &ready.role);
             }
@@ -83,30 +77,8 @@ impl State {
                     format!("duplicate sidecar name `{}`", sidecar.name),
                 ));
             }
-            if let Some(socket) = &sidecar.socket
-                && let Err(error) = socket::Endpoint::parse(socket)
-            {
-                diagnostics.push(Diagnostic::error(
-                    format!("{path}.inspect_socket"),
-                    error.to_string(),
-                ));
-            }
             if let Some(ready) = &sidecar.ready {
                 require(&mut diagnostics, format!("{path}.ready.role"), &ready.role);
-            }
-        }
-
-        let mut names = HashSet::new();
-        for (index, endpoint) in self.config.inspect.endpoints.iter().enumerate() {
-            let path = format!("inspect.endpoints[{index}]");
-            require(&mut diagnostics, format!("{path}.name"), &endpoint.name);
-            require(&mut diagnostics, format!("{path}.kind"), &endpoint.kind);
-            require(&mut diagnostics, format!("{path}.url"), &endpoint.url);
-            if !endpoint.name.trim().is_empty() && !names.insert(endpoint.name.as_str()) {
-                diagnostics.push(Diagnostic::error(
-                    format!("{path}.name"),
-                    format!("duplicate inspect endpoint name `{}`", endpoint.name),
-                ));
             }
         }
 

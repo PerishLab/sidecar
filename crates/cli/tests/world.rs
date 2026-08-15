@@ -1,6 +1,3 @@
-mod common;
-
-use common::schema;
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fs;
@@ -191,51 +188,5 @@ fn join(path: &str, key: &str) -> String {
         key.to_string()
     } else {
         format!("{path}.{key}")
-    }
-}
-
-#[test]
-fn words() {
-    let seat = seat("words");
-    let probe = probe();
-    let world = held(
-        &probe,
-        &seat,
-        "port = 0\ninspect_socket = \"unix:///tmp/sidecar-world.sock\"",
-    );
-    let said = announced(&world);
-    let schema = schema();
-    let mut declared: Vec<&String> = schema.keys().collect();
-    declared.sort();
-    let mut heard: Vec<&String> = said.keys().collect();
-    heard.sort();
-    assert_eq!(
-        heard, declared,
-        "the words sidecar announces and the words sidecar.schema.jsonc declares must be the same set"
-    );
-    for (word, value) in &said {
-        let form = schema[word]["form"].as_str().unwrap_or_default();
-        assert!(
-            shaped(form, value),
-            "{word} is declared as {form} but announced {value:?}"
-        );
-    }
-}
-
-fn announced(world: &Value) -> BTreeMap<String, String> {
-    world["env"]
-        .as_object()
-        .expect("probe env")
-        .iter()
-        .filter(|(key, _)| key.starts_with("SIDECAR_"))
-        .filter_map(|(key, value)| Some((key.clone(), value.as_str()?.to_string())))
-        .collect()
-}
-
-fn shaped(form: &str, value: &str) -> bool {
-    match form {
-        "decimal" => value.parse::<u16>().is_ok(),
-        "endpoint" => !value.is_empty(),
-        _ => false,
     }
 }

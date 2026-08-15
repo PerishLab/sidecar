@@ -19,6 +19,7 @@ paths = [
     "crates/cli/src/update.rs",
     "crates/cli/src/world.rs",
     "crates/core/src/paths.rs",
+    "packages/*/src/lib.ts",
     "packages/*/tests/**/*.test.ts",
     "packages/*/tests/**/*.test.tsx",
 ]

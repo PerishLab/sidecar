@@ -158,11 +158,6 @@ fn planned() {
         name = "desktop"
         command = "pnpm"
         args = ["tauri", "dev"]
-
-        [[inspect.endpoints]]
-        name = "health"
-        kind = "http"
-        url = "http://127.0.0.1:3000/health"
         "#,
     );
 
@@ -171,7 +166,6 @@ fn planned() {
     assert_eq!(plan.namespace, "default");
     assert_eq!(plan.app.unwrap().command, "pnpm");
     assert_eq!(plan.targets.len(), 1);
-    assert_eq!(plan.endpoints.len(), 1);
 }
 
 #[test]
@@ -252,7 +246,7 @@ fn seed(text: &str) -> State {
 }
 
 #[test]
-fn templated() {
+fn declared() {
     let state = seed(
         r#"
         [project]
@@ -262,29 +256,30 @@ fn templated() {
         [[sidecars]]
         name = "api"
         command = "cargo"
-        inspect_socket = "/tmp/{namespace}-{name}.sock"
+        inspect = {}
         "#,
     );
 
     let plan = state.plan().expect("plan");
     let target = plan.targets.first().expect("target should exist");
-    assert_eq!(target.socket.as_deref(), Some("/tmp/lab-api.sock"));
+    assert!(
+        target.inspect,
+        "the declared section should plan as inspect"
+    );
 }
 
 #[test]
 fn refused() {
-    let state = seed(
-        r#"
+    let text = r#"
         [project]
         name = "site"
 
         [[sidecars]]
         name = "api"
         command = "cargo"
-        inspect_socket = "/tmp/{ghost}.sock"
-        "#,
-    );
+        inspect = { url = "unix:///tmp/api.sock" }
+        "#;
 
-    let error = state.plan().expect_err("unknown variable should refuse");
-    assert!(error.contains("ghost"), "{error}");
+    let parsed: Result<sidecar_core::Manifest, _> = toml::from_str(text);
+    assert!(parsed.is_err(), "a transport field must not be accepted");
 }

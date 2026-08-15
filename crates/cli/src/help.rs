@@ -33,14 +33,15 @@ Global flags:
   --wait-timeout <s>    how long --wait polls before giving up (default: 120)
 
 Model:
-  Manifest: [project], optional [app], repeated [[sidecars]], ready/env/inspect
-  fields, and optional [[inspect.endpoints]]. See DESIGN.md for the schema.
+  Manifest: [project], optional [app], and repeated [[sidecars]] carrying
+  ready/env fields and an optional inspect section. See DESIGN.md.
   Lifecycle: command/cwd/args/env/stamps/ready/inspect/stop/reset close in manifest.
   Stamps: --sidecar-stamp=v=1;a=<app>;n=<namespace>;m=<mode>;s=<source>; values
   are percent-encoded. The stamp marks a process; it carries no configuration.
   Grants: leased resources reach a target as SIDECAR_<TERM> environment words.
   Readiness: --wait polls health_url over plain http; a target without one refuses.
-  Inspect: one SidecarRuntime event frame over unix:// sockets; TCP is fallback.
+  Inspect: declare the section; sidecar derives the address and each platform
+  carries it. Callers never see the transport.
   State: <data-home>/state plus <data-home>/projects/<namespace>; see AGENTS.md.
 
 Safety:

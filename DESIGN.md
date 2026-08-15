@@ -28,34 +28,24 @@ Sidecar owns what a grant is and how it is announced. A target owns how it is
 used. The gap between them is closed by first-party bindings, never by sidecar
 writing into a target's own arguments.
 
-`sidecar.schema.jsonc` carries the whole contract: a schema version and a map of
-words. A word is an environment variable name; its entry states the term it
-carries, the lexical form of its value, what it means, and what its absence
-means. Absence is never a zero, an empty string, or a default -- it is the
-statement that no such grant was made. Sidecar's own words live under the
-`SIDECAR_` prefix and are only ever added; a target's own environment is its own.
+Each term is announced as one `SIDECAR_<TERM>` environment word. Absence is
+never a zero, an empty string, or a default -- it is the statement that no such
+grant was made. Sidecar's own words live under the `SIDECAR_` prefix and are
+only ever added; a target's own environment is its own. The words are a private
+line between sidecar and its own bindings, which ship from this repository, so
+they carry no published vocabulary and no cross-version contract.
 
-The schema is load-bearing rather than descriptive. A test spawns a probe and
-asserts that the set of words sidecar actually announces equals the set the
-schema declares, and that each value matches its declared form, so the file
-cannot drift from the emitter.
+A resource is open to everyone: its value reaches a target as a word and as a
+`{term}` template expanded into manifest values, which is how a foreign binary
+that will never import a binding still receives a leased port. A capability is
+open only to a binding: its address is announced the same way, but the binding
+exposes the capability and never the address, so a caller cannot come to depend
+on the mechanism behind it.
 
-A term's underscores are segments, and no term may be a stem of another. A
-binding is free to render segments as nesting -- `inspect_socket` reads as
-`inspect.socket` where that is idiomatic -- so `broker` beside `broker_endpoint`
-would ask one name to be both a leaf and a branch.
-
-`sidecar.fixture.jsonc` is what a language binding is checked against. The
-fixture, not the first binding written, is the contract's truth: each case gives
-an environment and the grants a conforming binding must expose from it. A
-binding may ignore a word it does not know, which is how one schema version
-stays readable by an older binding.
-
-A grant is immutable for the life of the target. Both delivery paths -- the
-environment word and the `{term}` template expanded into manifest values -- are
-fixed before the process starts, and both are inherited across an arbitrary
-process tree for free. Anything that must rotate or move while a target runs
-cannot be granted this way.
+A grant is immutable for the life of the target. Both delivery paths are fixed
+before the process starts, and both are inherited across an arbitrary process
+tree for free. Anything that must rotate or move while a target runs cannot be
+granted this way.
 
 ## Broker
 
@@ -97,9 +87,16 @@ response: {"kind":"event_response","id":"...","payload":<json>}
 Inspect called without an explicit payload sends `{}` rather than `null`; a
 typed project protocol reads that as the unit event shape.
 
-Unix sockets are canonical for inspect. TCP is reserved for fallback and
-compatibility probes. Process status reports Sidecar-known identity, pids,
-readiness, and broker facts; it does not claim product health.
+A manifest declares the inspect section and nothing else: no address, no
+scheme, no path. Sidecar derives the seat from the project data directory and
+each platform carries it through one bridge facet -- a Unix socket where Unix
+sockets exist, a named pipe on Windows. A caller learns that the capability is
+there, never what carries it, so the mechanism may change under it. Read and
+write deadlines are one such difference: the Unix facet honours them and the
+Windows facet blocks until its peer answers.
+
+Process status reports Sidecar-known identity, pids, readiness, and broker
+facts; it does not claim product health.
 
 ## Recovery
 

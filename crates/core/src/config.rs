@@ -10,8 +10,6 @@ pub struct Manifest {
     pub app: Option<App>,
     #[serde(default)]
     pub sidecars: Vec<Sidecar>,
-    #[serde(default)]
-    pub inspect: Inspect,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -41,8 +39,8 @@ pub struct App {
     pub env: BTreeMap<String, String>,
     #[serde(default, rename = "inherits_env")]
     pub inherits: Vec<Inherit>,
-    #[serde(default, rename = "inspect_socket")]
-    pub socket: Option<String>,
+    #[serde(default)]
+    pub inspect: Option<Inspect>,
     #[serde(default)]
     pub port: Option<u16>,
     #[serde(default, rename = "health_url")]
@@ -66,8 +64,8 @@ pub struct Sidecar {
     pub env: BTreeMap<String, String>,
     #[serde(default, rename = "inherits_env")]
     pub inherits: Vec<Inherit>,
-    #[serde(default, rename = "inspect_socket")]
-    pub socket: Option<String>,
+    #[serde(default)]
+    pub inspect: Option<Inspect>,
     #[serde(default)]
     pub port: Option<u16>,
     #[serde(default, rename = "health_url")]
@@ -93,18 +91,7 @@ pub struct Inherit {
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct Inspect {
-    #[serde(default)]
-    pub endpoints: Vec<Endpoint>,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Endpoint {
-    pub name: String,
-    pub kind: String,
-    pub url: String,
-}
+pub struct Inspect {}
 
 mod default {
     pub(super) fn root() -> String {

@@ -16,10 +16,5 @@ command = "cargo"
 args = ["run", "-p", "example-api", "--"]
 cwd = "."
 mode = "dev"
-inspect_socket = "unix:///tmp/sidecar-example-api.sock"
+inspect = {}
 health_url = "http://127.0.0.1:3901/health"
-
-[[inspect.endpoints]]
-name = "api-health"
-kind = "http"
-url = "http://127.0.0.1:3901/health"

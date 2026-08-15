@@ -55,6 +55,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Require Node
+        run: node --version
       - name: Fetch deps
         run: cargo fetch --locked
       - name: Build
@@ -67,6 +69,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Require Node
+        run: node --version
       - name: Fetch deps
         run: cargo fetch --locked
       - name: Build

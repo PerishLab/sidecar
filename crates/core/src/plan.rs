@@ -13,7 +13,6 @@ pub struct Plan {
     pub app: Option<App>,
     pub sidecars: Vec<Sidecar>,
     pub targets: Vec<Target>,
-    pub endpoints: Vec<Endpoint>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,7 +24,7 @@ pub struct App {
     pub stamp: Stamp,
     pub env: BTreeMap<String, String>,
     pub inherits: Vec<Inherit>,
-    pub socket: Option<String>,
+    pub inspect: bool,
     pub port: Option<u16>,
     pub health: Option<String>,
     pub ready: Option<Ready>,
@@ -40,7 +39,7 @@ pub struct Sidecar {
     pub stamp: Stamp,
     pub env: BTreeMap<String, String>,
     pub inherits: Vec<Inherit>,
-    pub socket: Option<String>,
+    pub inspect: bool,
     pub port: Option<u16>,
     pub health: Option<String>,
     pub ready: Option<Ready>,
@@ -56,7 +55,7 @@ pub struct Target {
     pub stamp: Stamp,
     pub env: BTreeMap<String, String>,
     pub inherits: Vec<Inherit>,
-    pub socket: Option<String>,
+    pub inspect: bool,
     pub port: Option<u16>,
     pub health: Option<String>,
     pub ready: Option<Ready>,
@@ -80,13 +79,6 @@ pub struct Inherit {
     pub from: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Endpoint {
-    pub name: String,
-    pub kind: String,
-    pub url: String,
-}
-
 impl Manifest {
     pub fn plan(&self) -> Result<Plan, String> {
         let app = match &self.app {
@@ -106,12 +98,6 @@ impl Manifest {
             app,
             sidecars,
             targets,
-            endpoints: self
-                .inspect
-                .endpoints
-                .iter()
-                .map(config::Endpoint::plan)
-                .collect(),
         })
     }
 }
@@ -127,7 +113,7 @@ impl Target {
             stamp: plan.stamp.clone(),
             env: plan.env.clone(),
             inherits: plan.inherits.clone(),
-            socket: plan.socket.clone(),
+            inspect: plan.inspect,
             port: plan.port,
             health: plan.health.clone(),
             ready: plan.ready.clone(),
@@ -144,7 +130,7 @@ impl Target {
             stamp: plan.stamp.clone(),
             env: plan.env.clone(),
             inherits: plan.inherits.clone(),
-            socket: plan.socket.clone(),
+            inspect: plan.inspect,
             port: plan.port,
             health: plan.health.clone(),
             ready: plan.ready.clone(),
@@ -161,10 +147,6 @@ impl config::App {
             mode: self.mode.clone(),
             source: stamp::default::SOURCE.to_string(),
         };
-        let socket = match &self.socket {
-            Some(value) => Some(expand(value, project, &self.name)?),
-            None => None,
-        };
         Ok(App {
             name: self.name.clone(),
             command: self.command.clone(),
@@ -173,7 +155,7 @@ impl config::App {
             stamp,
             env: self.env.clone(),
             inherits: self.inherits.iter().map(config::Inherit::plan).collect(),
-            socket,
+            inspect: self.inspect.is_some(),
             port: self.port,
             health: self.health.clone(),
             ready: self.ready.as_ref().map(config::Ready::plan),
@@ -190,10 +172,6 @@ impl config::Sidecar {
             mode: self.mode.clone(),
             source: stamp::default::SOURCE.to_string(),
         };
-        let socket = match &self.socket {
-            Some(value) => Some(expand(value, project, &self.name)?),
-            None => None,
-        };
         Ok(Sidecar {
             name: self.name.clone(),
             command: self.command.clone(),
@@ -202,7 +180,7 @@ impl config::Sidecar {
             stamp,
             env: self.env.clone(),
             inherits: self.inherits.iter().map(config::Inherit::plan).collect(),
-            socket,
+            inspect: self.inspect.is_some(),
             port: self.port,
             health: self.health.clone(),
             ready: self.ready.as_ref().map(config::Ready::plan),
@@ -226,23 +204,4 @@ impl config::Inherit {
             from: self.from.clone(),
         }
     }
-}
-
-impl config::Endpoint {
-    fn plan(&self) -> Endpoint {
-        Endpoint {
-            name: self.name.clone(),
-            kind: self.kind.clone(),
-            url: self.url.clone(),
-        }
-    }
-}
-
-fn expand(value: &str, project: &config::Project, name: &str) -> Result<String, String> {
-    let vars = BTreeMap::from([
-        ("project", project.name.clone()),
-        ("namespace", project.namespace.clone()),
-        ("name", name.to_string()),
-    ]);
-    plumb::fill::fill(value, &vars).map_err(|err| format!("`{name}` inspect_socket: {err}"))
 }
