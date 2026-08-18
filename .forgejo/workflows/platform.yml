@@ -1,0 +1,29 @@
+name: platform
+
+on:
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Require Node
+        run: node --version
+      - name: Fetch deps
+        run: cargo fetch --locked
+      - name: Test
+        run: cargo test --locked --workspace
+
+  windows:
+    runs-on: windows
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Require Node
+        run: node --version
+      - name: Fetch deps
+        run: cargo fetch --locked
+      - name: Test
+        run: cargo test --locked --workspace

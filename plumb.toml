@@ -11,14 +11,14 @@ targets = [
 
 [release.npm]
 registry = "https://git.perish.top/api/packages/PerishLab/npm/"
-package = "@perish/sidecar"
+packages = ["@perish/sidecar"]
 
 [[document]]
 strategy = "agent"
-source = [{ path = ".", seal = "c2219abdeb2097b50474bed028353a4e4890de011a906c35ebdf73973567b253" }]
-target-seal = "95a64a2471bbb33fbf7c70d36a34e3967e40942a263168093338fd96c1eac75f"
+source = [{ path = ".", seal = "eb17cd27d6bc7cb296c502223becd0cfba580f4688d41a0bcd7166b907ec9717" }]
+target-seal = "bb6ab0fbf6335d4bbb20045758532eeb9b27cdbfd6eb627ab23466c9eb4c2f26"
 
 [[document]]
 strategy = "design"
-source = [{ path = ".", seal = "c2219abdeb2097b50474bed028353a4e4890de011a906c35ebdf73973567b253" }]
+source = [{ path = ".", seal = "eb17cd27d6bc7cb296c502223becd0cfba580f4688d41a0bcd7166b907ec9717" }]
 target-seal = "e8087399a070ef877a7d5f12a3a44575b9b7ff62e07c454966c164803b838e90"
