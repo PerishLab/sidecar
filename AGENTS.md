@@ -139,9 +139,11 @@ repository carries no Deno, filesystem wrapper, or repository-owned Git hook.
 `crates/cli/tests/world.rs` spawns the probe bare and through sidecar, then
 asserts the differing observations equal a declared residue exactly. Equality,
 not containment: a smaller difference means the declaration is wrong, not the
-spawn improved. Anything beyond `pid`, `ppid`, and the group is owed debt.
-The proof runs on every lane. On Windows the probe reports no parent or group,
-so the declared residue omits them there: a narrower proof, not a different one.
+spawn improved. Anything beyond `pid`, `ppid` and the group is owed debt.
+Guard proves it on Linux; macOS and Windows evidence is episodic, so dispatch the
+`platform` lane when a change touches spawn, discovery or a bridge facet. The
+Windows probe reports no parent or group, so the residue declared there omits
+them: a narrower proof, not a different one.
 
 ## Constitution
 
@@ -158,7 +160,6 @@ must pass before anything lands:
 
 ## Common Commands
 
-- Full gate: the commands listed under Pre-PR Checks below.
 - JS deps: `corepack enable && pnpm install --frozen-lockfile`
 - CLI smoke: `cargo run --locked -p sidecar -- doctor --config examples/minimal.toml`
 - Plan: `cargo run --locked -p sidecar -- plan --config examples/minimal.toml --format json`
@@ -174,8 +175,8 @@ must pass before anything lands:
 - `runseal.toml`: the env-only per-run profile.
 - `.runseal/resources/`: committed inert profile material when needed.
 - `ectropy.toml`: the Plumb-managed syntax policy Ectropy executes over source.
-- `.forgejo/workflows/release-{exact,stable}.yml`: thin callers into the shared
-  binary release workflow.
+- `.forgejo/workflows/`: guard, ship and both release lanes are rendered by
+  `plumb lane --write` and must never be edited; `platform.yml` is repository-owned and dispatched by hand for macOS and Windows evidence.
 
 ## Standard Workflow
 
@@ -250,8 +251,7 @@ required merge gate is the `guard` check from `.forgejo/workflows/guard.yml`.
 Required approvals are intentionally `0`.
 
 Landing is workshop control-plane behavior owned outside this repository. Use
-the current substrate operator from the managed task environment. Do not add a
-repository wrapper or Git hook to make landing locally discoverable.
+the current substrate operator; do not add a wrapper or hook for it here.
 
 ## Stamp args protocol
 
