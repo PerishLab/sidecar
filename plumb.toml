@@ -15,10 +15,10 @@ packages = ["@perish/sidecar"]
 
 [[document]]
 strategy = "agent"
-source = [{ path = ".", seal = "eb17cd27d6bc7cb296c502223becd0cfba580f4688d41a0bcd7166b907ec9717" }]
-target-seal = "bb6ab0fbf6335d4bbb20045758532eeb9b27cdbfd6eb627ab23466c9eb4c2f26"
+source = [{ path = ".", seal = "175854788a455e9fac946451b30705c9db12ec7b8aec476c5978f246c8353796" }]
+target-seal = "fc55db291362b445f12aae5c4bac5fed6833b14cb95b938229aaf7a92f62adc0"
 
 [[document]]
 strategy = "design"
-source = [{ path = ".", seal = "eb17cd27d6bc7cb296c502223becd0cfba580f4688d41a0bcd7166b907ec9717" }]
+source = [{ path = ".", seal = "175854788a455e9fac946451b30705c9db12ec7b8aec476c5978f246c8353796" }]
 target-seal = "e8087399a070ef877a7d5f12a3a44575b9b7ff62e07c454966c164803b838e90"
