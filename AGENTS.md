@@ -182,26 +182,14 @@ must pass before anything lands:
 
 ### Initialize
 
-After cloning or when the toolchain looks stale, validate the profile and
-repository:
-
-```bash
-runseal profile
-plumb doctor .
-ectropy .
-```
-
-There is no initialization wrapper and no repository-owned Git hook. The gate
-is the direct command set below and the canonical `guard` workflow in CI.
+After cloning, or when the toolchain looks stale, run `runseal profile`,
+`plumb doctor .` and `ectropy .`. There is no initialization wrapper and no
+repository-owned Git hook.
 
 ### Branch Names
 
-Use `<area>/<kebab-case-slug>`, where `<area>` matches the touched crate or concern. Examples:
-
-- `cli/update-command`
-- `core/process-discovery`
-- `release/stable-dispatch`
-- `docs/install-readme`
+Use `<area>/<kebab-case-slug>`, where `<area>` matches the touched crate or
+concern: `cli/update-command`, `core/process-discovery`, `docs/install-readme`.
 
 ### Commit Messages
 
@@ -209,23 +197,10 @@ Subject: `<area>: <imperative summary>` on one line, ideally <= 72 characters. T
 
 ### Pre-PR Checks
 
-Every PR must pass the direct guard before review:
-
-```bash
-plumb doctor .
-cargo fmt --all --check
-cargo clippy --locked --workspace --all-targets -- -D warnings
-cargo check --locked --workspace --all-targets --release
-cargo test --locked --workspace
-pnpm biome ci .
-pnpm -r exec tsc --noEmit
-pnpm -r test
-ectropy .
-```
-
-Use `runseal : <command>` only when that command needs the repo-local profile;
-the guard itself has no ambient local-material dependency. CI runs the same
-commands directly after installing stable Ectropy and Plumb.
+Run what the guard lane runs, and read it from the lane rather than from here:
+`.forgejo/workflows/guard.yml` is rendered by `plumb lane --write` and is the
+only list that cannot drift. Use `runseal : <command>` only where a command
+needs the repo-local profile; the guard has no ambient local dependency.
 
 ### PR Descriptions
 
@@ -296,25 +271,18 @@ mechanism is not.
 
 ## Release
 
-- Canonical-authority stable owns the root managers, moving pointer, default
-  install root, and default bin directory. It is the only release admitted to
-  those consensus surfaces.
-- Every non-stable channel requires an exact version plus explicit install and
-  bin paths disjoint from stable. Non-stable has no pointer or activation.
-- `plumb.toml` is the product-owned release declaration. Stable Plumb builds
-  and inspects archives, generates managers and records, seals exact objects,
-  performs public readback, and owns cross-platform manager smoke.
-- Publishing and stable activation use separate commands and credentials.
-  Exact seals are create-only; stable activation compare-and-swaps the sole
-  moving pointer after updating both generated root managers.
-- Stable is rebuilt from the same commit as one exact candidate and embeds its
-  complete seal plus digest as proof.
-- Release branches run the canonical guard workflow. Shared Actions consumes
-  the three exact commit-status contexts instead of executing a repository
-  wrapper during publication.
+- Canonical-authority stable owns the root managers, the moving pointer, and the
+  default install and bin paths. Every non-stable channel needs an exact version
+  and paths disjoint from stable.
+- `plumb.toml` is the product-owned declaration; rendered lanes carry the rest.
+  Shifting the managers and advancing the channel pointer are separate deeds,
+  and a lane rendered before Plumb v0.27.0 ran only the first.
+- Exact seals are create-only and self-verifying, so re-dispatching a version
+  that published but never pointed advances the pointer and nothing else.
+- Stable is rebuilt from the same commit as one exact candidate and embeds that
+  candidate's seal and digest as proof.
 - A stable release refuses to publish without
   `docs/CHANGELOG/v<version>/{en,zh}/{INDEX.md,MIGRATION.md}`, enforced by the
-  stable capsule compiler before anything irreversible.
-  `plumb doctor` does not check this: a changelog is owed by a release, not by a
-  working tree. A release requiring nothing of anyone still writes MIGRATION.md
-  saying so. Follow the release-local contract under `docs/CHANGELOG`.
+  capsule compiler before anything irreversible. `plumb doctor` does not check
+  it: a changelog is owed by a release, not by a working tree. A release
+  requiring nothing of anyone still writes MIGRATION.md saying so.

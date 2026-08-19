@@ -11,7 +11,7 @@ license = "MIT"
 repository = "https://git.perish.top/PerishFire/sidecar"
 
 [workspace.dependencies]
-plumb = { version = "0", registry = "perish" }
+plumb = { version = "0.27.0", registry = "perish" }
 clap = { version = "4", features = ["derive"] }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
