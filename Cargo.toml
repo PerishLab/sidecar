@@ -6,12 +6,13 @@ members = [
 resolver = "2"
 
 [workspace.package]
+version = "0.0.0"
 edition = "2024"
 license = "MIT"
-repository = "https://git.perish.top/PerishFire/sidecar"
+repository = "https://github.com/PerishLab/sidecar"
 
 [workspace.dependencies]
-plumb = { version = "0.27.0", registry = "perish" }
+plumb = { version = "0.47.0", registry = "perish" }
 clap = { version = "4", features = ["derive"] }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }

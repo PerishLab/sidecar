@@ -33,8 +33,13 @@ The TCP broker is local service discovery and runtime registry for host processe
 - Keep `crates/cli` as the installed binary boundary named `sidecar`.
 - Manifest fields describe local process control-plane behavior only: start shape, cwd, args, env, readiness, identity, discovery, inspect, stop, reset, and data paths. Do not add product semantics or container/cluster scheduling semantics.
 - `--config <path>` is the explicit manifest override. Without it, sidecar walks from cwd upward for the nearest `sidecar.toml`.
-- Release publishing and stable activation use the separate generic
-  `RELEASE_PUBLISH_S3_*` and `RELEASE_ACTIVATE_S3_*` capabilities.
+- Releases follow Plumb's lifecycle: `plumb release open` cuts
+  `release/<version>` from a guarded `main`, `plumb release stamp` marks it, and
+  `plumb ship dispatch` hands the marker to wharf, which builds, binds and
+  publishes the `sidecar` binary and `@perishlab/sidecar`. The repository holds
+  no release credential. A stable's changelog is consigned to the Depot with
+  `plumb depot consign --kind changelog`; `plumb release owed` lists what is
+  still owed.
 - Consumer validation must use installed release assets, not `cargo install --path`, once a release exists.
 
 ## Update / Compatibility Policy
@@ -42,7 +47,7 @@ The TCP broker is local service discovery and runtime registry for host processe
 - The CLI never carries compatibility shims. Renaming or reshaping `Manifest`, CLI flags, the inspect protocol, the stamp protocol, or the installer surface is a hard cutover — no aliases, no deprecation warnings, no best-effort parsing of older shapes.
 - No internal migrations: there is no state translator, schema-version field,
   or auto-rewrite of `sidecar.toml`. Older configs hard-fail and move through
-  the release-local CHANGELOG contract.
+  the changelog each stable consigns to the Depot.
 - The fixed escape hatch is reset, manager uninstall, reinstall latest stable,
   then re-author the manifest from the current command and example surface.
 - Versioning is `0.Y.Z` indefinitely. A `Y` bump is breaking by default; pre-1.0 SemVer carries the unstable contract for us — we do not promote to `1.0.0`.
@@ -55,18 +60,19 @@ The TCP broker is local service discovery and runtime registry for host processe
 
 ## Build-time Stamps
 
-`crates/cli` reads three optional build-time env vars via `option_env!` and
-bakes them into the binary; Plumb sets all three while building a declared
-release target:
+`crates/cli` carries the release identity region through
+`plumb::identity!("SIDECAR")`. Wharf builds the binary unbound and binds the
+release version, channel, commit and target into that region afterwards, so
+every published binary is self-aware:
 
-- `SIDECAR_BUILD_VERSION` → `cli::version()` (defaults to `v<CARGO_PKG_VERSION>` for dev builds).
-- `SIDECAR_BUILD_CHANNEL` → `cli::channel()` (the exact release channel;
-  defaults to `dev`, which disables the startup check and `update` subcommand).
-- `SIDECAR_BUILD_AUTHORITY` → fallback for the update check / subcommand when the runtime env var is absent.
+- `cli::version()` reads the bound version, and a dev build falls back to
+  `SIDECAR_BUILD_VERSION` or `v<CARGO_PKG_VERSION>`.
+- `cli::channel()` reads the bound channel, and a dev build falls back to
+  `SIDECAR_BUILD_CHANNEL` or `dev`, which disables the startup check and
+  `update` subcommand.
 
-The reusable release workflow passes its exact channel, version, commit, and
-declared authority into Plumb so every published binary is self-aware. The
-canonical authority is read from `plumb.toml`.
+The update check and subcommand ask `SIDECAR_RELEASES_PUBLIC_URL` when it is set
+and the canonical authority `https://releases.sidecar.perish.uk` otherwise.
 
 ## Runtime Update Env Vars
 
@@ -131,8 +137,8 @@ seats and carries no command or lifecycle behavior.
 
 Use `runseal profile` to validate the resolved profile and `runseal : <command>`
 when a command needs those values. Generic guard, init, land, and release
-behavior belongs to the workshop substrate or canonical workflow. This
-repository carries no Deno, filesystem wrapper, or repository-owned Git hook.
+behavior belongs to Plumb and wharf. This repository carries no Deno or
+filesystem wrapper, and its Git hooks are Plumb's.
 
 ## Spawn Residue
 
@@ -140,8 +146,9 @@ repository carries no Deno, filesystem wrapper, or repository-owned Git hook.
 asserts the differing observations equal a declared residue exactly. Equality,
 not containment: a smaller difference means the declaration is wrong, not the
 spawn improved. Anything beyond `pid`, `ppid` and the group is owed debt.
-Guard proves it on Linux; macOS and Windows evidence is episodic, so dispatch the
-`platform` lane when a change touches spawn, discovery or a bridge facet. The
+Guard proves it on Linux; macOS and Windows evidence is episodic, so run
+`cargo test --locked -p sidecar --test world` on those hosts when a change
+touches spawn, discovery or a bridge facet. The
 Windows probe reports no parent or group, so the residue declared there omits
 them: a narrower proof, not a different one.
 
@@ -169,22 +176,21 @@ must pass before anything lands:
 - `crates/core/`: `Manifest` config, diagnostics, plan, inspect bridge and envelope, stamp protocol, process discovery.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`logs`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
 - `crates/cli/src/world.rs`: the unpublished `world` probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
-- `packages/sidecar/`: `@perish/sidecar`, the binding that turns the announcement into `control` and `inspect` facets; its `tests/probe.ts` is the target `crates/cli/tests/probe.rs` raises end to end.
+- `packages/sidecar/`: `@perishlab/sidecar`, the binding that turns the announcement into `control` and `inspect` facets; its `tests/probe.ts` is the target `crates/cli/tests/probe.rs` raises end to end.
 - `plumb.toml`: product authority, binaries, and supported targets, for stable Plumb.
 - `DESIGN.md`: broker topology, the grant contract, and authority boundaries.
 - `runseal.toml`: the env-only per-run profile.
 - `.runseal/resources/`: committed inert profile material when needed.
 - `ectropy.toml`: the Plumb-managed syntax policy Ectropy executes over source.
-- `.forgejo/workflows/`: guard, ship and both release lanes are rendered by
-  `plumb lane --write` and must never be edited; `platform.yml` is repository-owned and dispatched by hand for macOS and Windows evidence.
 
 ## Standard Workflow
 
 ### Initialize
 
 After cloning, or when the toolchain looks stale, run `runseal profile`,
-`plumb doctor .` and `ectropy .`. There is no initialization wrapper and no
-repository-owned Git hook.
+`plumb configuration install`, `plumb doctor .` and `ectropy .`. There is no
+initialization wrapper; the Git hooks are Plumb's, projected by
+`plumb configuration install`.
 
 ### Branch Names
 
@@ -197,10 +203,10 @@ Subject: `<area>: <imperative summary>` on one line, ideally <= 72 characters. T
 
 ### Pre-PR Checks
 
-Run what the guard lane runs, and read it from the lane rather than from here:
-`.forgejo/workflows/guard.yml` is rendered by `plumb lane --write` and is the
-only list that cannot drift. Use `runseal : <command>` only where a command
-needs the repo-local profile; the guard has no ambient local dependency.
+Plumb's pre-commit guard runs the checks against the exact staged tree and the
+commit carries its proof; `plumb guard .` shows what it runs, and is the only
+list that cannot drift. Use `runseal : <command>` only where a command needs
+the repo-local profile; the guard has no ambient local dependency.
 
 ### PR Descriptions
 
@@ -221,12 +227,9 @@ Add `## Compatibility` when a manifest field, CLI flag, protocol field, output s
 
 ### Merging
 
-`main` is PR-only and protected by the repository ruleset `main guard`. The
-required merge gate is the `guard` check from `.forgejo/workflows/guard.yml`.
-Required approvals are intentionally `0`.
-
-Landing is workshop control-plane behavior owned outside this repository. Use
-the current substrate operator; do not add a wrapper or hook for it here.
+`main` takes changes only through `plumb land`, which merges a proved topic
+branch as a pull request whose head carries the guard proof. Required approvals
+are intentionally `0`. Do not add a wrapper or hook for landing here.
 
 ## Stamp args protocol
 
@@ -274,15 +277,13 @@ mechanism is not.
 - Canonical-authority stable owns the root managers, the moving pointer, and the
   default install and bin paths. Every non-stable channel needs an exact version
   and paths disjoint from stable.
-- `plumb.toml` is the product-owned declaration; rendered lanes carry the rest.
-  Shifting the managers and advancing the channel pointer are separate deeds,
-  and a lane rendered before Plumb v0.27.0 ran only the first.
-- Exact seals are create-only and self-verifying, so re-dispatching a version
-  that published but never pointed advances the pointer and nothing else.
-- Stable is rebuilt from the same commit as one exact candidate and embeds that
-  candidate's seal and digest as proof.
-- A stable release refuses to publish without
-  `docs/CHANGELOG/v<version>/{en,zh}/{INDEX.md,MIGRATION.md}`, enforced by the
-  capsule compiler before anything irreversible. `plumb doctor` does not check
-  it: a changelog is owed by a release, not by a working tree. A release
-  requiring nothing of anyone still writes MIGRATION.md saying so.
+- `plumb.toml` is the product-owned declaration: the `sidecar` binary, its
+  targets and the `@perishlab/sidecar` npm attachment. Wharf reads it and
+  publishes nothing it does not list.
+- Exact seals are create-only, so re-dispatching a marker that published but
+  never pointed advances the pointer and publishes nothing again.
+- A stable promotes one release candidate stamped on the same commit.
+- A stable owes its changelog, `{en,zh}/{INDEX.md,MIGRATION.md}`, consigned to
+  the Depot before the next marker is stamped. `plumb doctor` does not check it:
+  a changelog is owed by a release, not by a working tree. A release requiring
+  nothing of anyone still writes MIGRATION.md saying so.
