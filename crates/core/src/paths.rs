@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const AUTHORITY: &str = "https://releases.sidecar.perish.uk";
+pub const AUTHORITY: &str = "https://releases.sidecar.perish.uk";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Paths {

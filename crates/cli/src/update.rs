@@ -15,9 +15,7 @@ pub fn notice(current: &str, build: &str, home: Option<&Path>) {
     if !enabled(&channel) {
         return;
     }
-    let Some(base) = base() else {
-        return;
-    };
+    let base = base();
     if !paths::canonical(&base) || !paths::installed() {
         return;
     }
@@ -39,10 +37,7 @@ pub fn run(build: &str) -> Result<(), String> {
                 .to_string(),
         );
     }
-    let base = base().ok_or_else(|| {
-        "SIDECAR_RELEASES_PUBLIC_URL is required (or rebuild with SIDECAR_BUILD_AUTHORITY)"
-            .to_string()
-    })?;
+    let base = base();
     if !paths::canonical(&base) {
         return Err(
             "sidecar update requires the canonical stable release authority; use an exact isolated manager invocation"
@@ -113,15 +108,11 @@ fn enabled(channel: &str) -> bool {
     !matches!(env::var("SIDECAR_NO_UPDATE_CHECK"), Ok(value) if !value.is_empty() && value != "0")
 }
 
-fn base() -> Option<String> {
-    if let Ok(value) = env::var("SIDECAR_RELEASES_PUBLIC_URL")
-        && !value.is_empty()
-    {
-        return Some(value);
-    }
-    option_env!("SIDECAR_BUILD_AUTHORITY")
-        .filter(|s| !s.is_empty())
-        .map(String::from)
+fn base() -> String {
+    env::var("SIDECAR_RELEASES_PUBLIC_URL")
+        .ok()
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| paths::AUTHORITY.to_string())
 }
 
 fn ttl() -> Duration {

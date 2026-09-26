@@ -1,3 +1,39 @@
+[layout]
+
+[[layout.seat]]
+path = "crates/*"
+anchor = ["Cargo.toml"]
+note = "The product-neutral core and the CLI that installs as sidecar."
+
+[[layout.seat]]
+path = "packages/*"
+anchor = ["package.json"]
+note = "The npm binding that reads the grant announcement."
+
+[[layout.seat]]
+path = "examples"
+note = "Manifests the plan command and the guard exercise."
+
+[[layout.seat]]
+path = ".cargo"
+note = "Cargo registry configuration."
+
+[[layout.seat]]
+path = ".runseal"
+note = "Committed inert Runseal resources."
+
+[[layout.file]]
+name = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml"]
+note = "Rust workspace anchors and the toolchain wharf builds with."
+
+[[layout.file]]
+name = ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "biome.json", ".npmrc"]
+note = "The pnpm workspace anchors."
+
+[[layout.file]]
+name = ["DESIGN.md"]
+note = "Broker topology, the grant contract and authority boundaries."
+
 [release]
 product = "sidecar"
 authority = "https://releases.sidecar.perish.uk"
@@ -5,13 +41,12 @@ binaries = ["sidecar"]
 targets = [
   "x86_64-unknown-linux-gnu",
   "aarch64-apple-darwin",
-  "x86_64-apple-darwin",
   "x86_64-pc-windows-msvc",
 ]
 
 [release.npm]
-registry = "https://git.perish.top/api/packages/PerishLab/npm/"
-packages = ["@perish/sidecar"]
+registry = "https://npm.pkg.github.com/"
+packages = ["@perishlab/sidecar"]
 
 [[document]]
 strategy = "agent"

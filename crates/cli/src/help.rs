@@ -55,8 +55,8 @@ Exit shape:
   0 on success. 1 on config, diagnostic, lifecycle, inspect, or update failure.
 
 Project:
-  Source:  https://git.perish.top/PerishFire/sidecar
-  Issues:  https://git.perish.top/PerishFire/sidecar/issues
+  Source:  https://github.com/PerishLab/sidecar
+  Issues:  https://github.com/PerishLab/sidecar/issues
   Details: DESIGN.md for the model; AGENTS.md for boundaries and PR workflow.
 "#
 }

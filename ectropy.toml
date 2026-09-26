@@ -3,6 +3,7 @@ allow = false
 
 [[grant]]
 paths = [
+    "crates/*/src/**/*.rs",
     "crates/*/tests/**/*.rs",
     "packages/*/tests/**/*.test.ts",
     "packages/*/tests/**/*.test.tsx",
@@ -31,13 +32,12 @@ fanout = 10
 file = 300
 markup = 8
 param = 4
-path = 4
+path = 3
 
 [module]
 roots = [
     "crates/*/src",
     "crates/*/tests",
-    "docs",
     "packages/*/lib",
     "packages/*/src",
     "packages/*/tests",
@@ -51,7 +51,6 @@ exclude = [
 ]
 include = [
     "crates/**/*.rs",
-    "docs/**/*.md",
     "packages/**/*.css",
     "packages/**/*.scss",
     "packages/**/*.ts",
