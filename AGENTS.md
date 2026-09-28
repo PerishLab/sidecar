@@ -210,20 +210,9 @@ the repo-local profile; the guard has no ambient local dependency.
 
 ### PR Descriptions
 
-Use these top-level sections, in order:
-
-```markdown
-## Why
-<what is broken or missing today>
-
-## What
-<concrete change list; reference filenames and modules>
-
-## Tests
-<commands run and results>
-```
-
-Add `## Compatibility` when a manifest field, CLI flag, protocol field, output shape, or exit-code behavior moves. Add `## Trade-off worth flagging` when the change has a downside that reviewers should hold in mind.
+Pull requests use the inherited organization template. When a manifest field,
+CLI flag, protocol field, output shape, or exit-code behavior moves, say so in
+its Change section.
 
 ### Merging
 
