@@ -33,13 +33,10 @@ The TCP broker is local service discovery and runtime registry for host processe
 - Keep `crates/cli` as the installed binary boundary named `sidecar`.
 - Manifest fields describe local process control-plane behavior only: start shape, cwd, args, env, readiness, identity, discovery, inspect, stop, reset, and data paths. Do not add product semantics or container/cluster scheduling semantics.
 - `--config <path>` is the explicit manifest override. Without it, sidecar walks from cwd upward for the nearest `sidecar.toml`.
-- Releases follow Plumb's lifecycle: `plumb release open` cuts
-  `release/<version>` from a guarded `main`, `plumb release stamp` marks it, and
-  `plumb ship dispatch` hands the marker to wharf, which builds, binds and
-  publishes the `sidecar` binary and `@perishlab/sidecar`. The repository holds
-  no release credential. A stable's changelog is consigned to the Depot with
-  `plumb depot consign --kind changelog`; `plumb release owed` lists what is
-  still owed.
+- Releases follow Plumb's lifecycle (`plumb release --help`); wharf builds,
+  binds and publishes the `sidecar` binary and `@perishlab/sidecar`. The
+  repository holds no release credential. A stable's changelog goes to the
+  Depot.
 - Consumer validation must use installed release assets, not `cargo install --path`, once a release exists.
 
 ## Update / Compatibility Policy
