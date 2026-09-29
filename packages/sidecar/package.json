@@ -6,6 +6,7 @@
 	"type": "module",
 	"exports": {
 		".": {
+			"source": "./src/lib.ts",
 			"types": "./dist/lib.d.ts",
 			"default": "./dist/lib.js"
 		}
@@ -16,7 +17,7 @@
 	"scripts": {
 		"build": "tsc -p tsconfig.json",
 		"prepack": "tsc -p tsconfig.json",
-		"test": "vitest run"
+		"test": "vitest run --config tests/vitest.config.ts"
 	},
 	"devDependencies": {
 		"@types/node": "catalog:",

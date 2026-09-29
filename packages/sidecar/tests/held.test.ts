@@ -1,5 +1,5 @@
+import { client, decode } from "@perishlab/sidecar";
 import { expect, test } from "vitest";
-import { client, decode } from "../src/lib.ts";
 
 test("a declared port reads decimal", async () => {
 	const held = await client.connect({ SIDECAR_PORT: "44767" });
