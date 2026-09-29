@@ -1,4 +1,4 @@
-import { client } from "../src/lib.ts";
+import { client } from "@perishlab/sidecar";
 
 const held = await client.connect();
 

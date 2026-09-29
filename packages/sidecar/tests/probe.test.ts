@@ -33,7 +33,7 @@ function manifest(): string {
 		"[[sidecars]]",
 		'name = "probe"',
 		"command = 'node'",
-		`args = ['${script}']`,
+		`args = ['--conditions=source', '${script}']`,
 		'cwd = "."',
 		'mode = "probe"',
 		"port = 0",
