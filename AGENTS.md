@@ -164,7 +164,7 @@ must pass before anything lands:
 
 ## Common Commands
 
-- JS deps: `corepack enable && pnpm install --frozen-lockfile`
+- JS deps: `pnpm install --frozen-lockfile`
 - CLI smoke: `cargo run --locked -p sidecar -- doctor --config examples/minimal.toml`
 - Plan: `cargo run --locked -p sidecar -- plan --config examples/minimal.toml --format json`
 
