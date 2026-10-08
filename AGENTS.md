@@ -173,7 +173,7 @@ must pass before anything lands:
 - `crates/core/`: `Manifest` config, diagnostics, plan, inspect bridge and envelope, stamp protocol, process discovery.
 - `crates/cli/`: CLI parsing, lifecycle execution (`start`/`stop`/`restart`/`status`/`logs`/`list`/`reset`), `inspect <sidecar> <event> [payload]`, output formatting, exit behavior.
 - `crates/cli/src/world.rs`: the unpublished `world` probe binary. It reports its own argv, environment, cwd, pid, parent, process group, and terminal answers from inside the process, so the same observation is portable across every supported platform.
-- `packages/sidecar/`: `@perishlab/sidecar`, the binding that turns the announcement into `control` and `inspect` facets. `crates/cli/tests/binding.rs` starts this tree's `sidecar` binary, which raises `packages/sidecar/tests/probe.ts` under node, and asks it `inspect` end to end over the real binding.
+- `packages/sidecar/`: `@perishlab/sidecar`, the binding that turns the announcement into `control` and `inspect` facets.
 - `plumb.toml`: product authority, binaries, and supported targets, for stable Plumb.
 - `DESIGN.md`: broker topology, the grant contract, and authority boundaries.
 - `runseal.toml`: the env-only per-run profile.
