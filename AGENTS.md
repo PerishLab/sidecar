@@ -1,5 +1,10 @@
 # AGENTS
 
+Read the canonical [PerishLab delivery governance](https://github.com/PerishLab/.github/blob/main/GOVERNANCE.md)
+at work start and again before delivery or Issue closure. That document owns
+organization-wide Issue, pull-request and acceptance policy; this file keeps
+repository-specific constraints without copying that policy.
+
 ## Purpose
 
 `sidecar` is the standalone home for an IPC-based sidecars project manager. It owns five product-neutral abstractions:
