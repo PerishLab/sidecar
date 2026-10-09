@@ -1,10 +1,8 @@
 use crate::args::{Global, Waiting};
 use crate::help::help;
-use crate::update;
 use crate::{commands, output};
 use clap::{Parser, Subcommand};
 use sidecar_core::Severity;
-use std::path::Path;
 use std::time::Duration;
 
 pub(crate) mod default {
@@ -29,10 +27,6 @@ impl Format {
 
 pub fn version() -> &'static str {
     plumb::version!("SIDECAR")
-}
-
-pub fn channel() -> &'static str {
-    plumb::channel!("SIDECAR")
 }
 
 #[derive(Parser)]
@@ -81,7 +75,6 @@ pub(crate) enum Verb {
     },
     List,
     Reset,
-    Update,
     Runtime {
         #[command(subcommand)]
         cmd: Runtime,
@@ -127,13 +120,6 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
     };
     let global = &cli.global;
 
-    if !matches!(
-        verb,
-        Verb::Help | Verb::Version | Verb::Update | Verb::Runtime { .. }
-    ) {
-        update::notice(version(), channel(), global.home.as_deref().map(Path::new));
-    }
-
     match verb {
         Verb::Help => {
             println!("{}", help());
@@ -143,7 +129,6 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
             println!("sidecar {}", version());
             Ok(())
         }
-        Verb::Update => update::run(channel()),
         Verb::Runtime { cmd } => match cmd {
             Runtime::Serve {
                 project, namespace, ..
