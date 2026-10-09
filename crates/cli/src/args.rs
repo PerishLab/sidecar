@@ -147,7 +147,6 @@ pub mod __test {
             Verb::Logs { sidecar, .. } => once("logs", sidecar),
             Verb::List => vec!["list".to_string()],
             Verb::Reset => vec!["reset".to_string()],
-            Verb::Update => vec!["update".to_string()],
             Verb::Runtime { cmd } => runtime(cmd),
             Verb::Version => vec!["version".to_string()],
             Verb::Help => vec!["help".to_string()],

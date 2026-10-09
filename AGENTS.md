@@ -44,7 +44,7 @@ The TCP broker is local service discovery and runtime registry for host processe
   Depot.
 - Consumer validation must use installed release assets, not `cargo install --path`, once a release exists.
 
-## Update / Compatibility Policy
+## Compatibility Policy
 
 - The CLI never carries compatibility shims. Renaming or reshaping `Manifest`, CLI flags, the inspect protocol, the stamp protocol, or the installer surface is a hard cutover — no aliases, no deprecation warnings, no best-effort parsing of older shapes.
 - No internal migrations: there is no state translator, schema-version field,
@@ -53,12 +53,8 @@ The TCP broker is local service discovery and runtime registry for host processe
 - The fixed escape hatch is reset, manager uninstall, reinstall latest stable,
   then re-author the manifest from the current command and example surface.
 - Versioning is `0.Y.Z` indefinitely. A `Y` bump is breaking by default; pre-1.0 SemVer carries the unstable contract for us — we do not promote to `1.0.0`.
-- The update mechanism itself follows the same rule: the startup check is
-  stable-only, best-effort, and silently swallows every failure mode (network,
-  parse, clock, missing curl). `sidecar update` is available only to a canonical
-  stable default-seat install and delegates to the root stable manager.
-  Non-stable and isolated exact installs are replaced only by another explicit
-  exact manager invocation.
+- The CLI never checks for or performs its own updates; installing and
+  upgrading belong to the root managers alone.
 
 ## Build-time Stamps
 
@@ -69,22 +65,6 @@ every published binary is self-aware:
 
 - `cli::version()` reads the bound version, and a dev build falls back to
   `SIDECAR_BUILD_VERSION` or `v<CARGO_PKG_VERSION>`.
-- `cli::channel()` reads the bound channel, and a dev build falls back to
-  `SIDECAR_BUILD_CHANNEL` or `dev`, which disables the startup check and
-  `update` subcommand.
-
-The update check and subcommand ask `SIDECAR_RELEASES_PUBLIC_URL` when it is set
-and the canonical authority `https://releases.sidecar.perish.uk` otherwise.
-
-## Runtime Update Env Vars
-
-- `SIDECAR_RELEASES_PUBLIC_URL` — overrides the build-time stamp for both check and update.
-- `SIDECAR_CHANNEL` — overrides the build-time channel; only `stable` enables
-  the update check and update subcommand.
-- `SIDECAR_NO_UPDATE_CHECK=1` — skip the startup check entirely.
-- `SIDECAR_UPDATE_TTL=<n>[smhd]` — startup-check cache TTL; default `24h`, `0` = always fetch.
-
-The update cache lives at `<data_home>/state/update-<channel>.json` (see Data Home below). It is single-key (`{checked_at, channel, latest_version}`) and may be deleted at any time.
 
 ## Data Home
 
@@ -92,7 +72,7 @@ Sidecar's persistent runtime state has a single canonical root, the data home:
 
 - Default: `$XDG_DATA_HOME/sidecar` → `$HOME/.local/share/sidecar` on Unix, `%LOCALAPPDATA%\sidecar` on Windows.
 - Layout:
-  - `<data_home>/state/` — global, namespace-independent (currently: update cache).
+  - `<data_home>/state/` — global, namespace-independent state.
   - `<data_home>/projects/<namespace>/` — per-project isolation (target pids, logs, runtime artifacts).
 
 Override precedence (highest wins): `--data-home <path>` (CLI) > `SIDECAR_DATA_HOME` (env) > platform default. The manifest `[project].data_dir` field replaces the per-project subdir only (it does not move `state/`); `state/` always sits directly under `<data_home>`.
@@ -117,7 +97,7 @@ It:
 1. Terminates every stamped process and every manifest-recorded target pid in the current namespace.
 2. Terminates every broker process for the current project/namespace.
 3. Removes `<data_home>/projects/<namespace>/` (manifest `data_dir` honored).
-4. With `--all`: also removes `<data_home>/state/` (wipes update cache, etc.).
+4. With `--all`: also removes `<data_home>/state/`.
 
 There is no `--keep-data` or confirm prompt. Forceful cleanup remains explicit.
 The install root and bin link belong to the generated manager, not reset.
@@ -127,9 +107,7 @@ The install root and bin link belong to the generated manager, not reset.
 Root `manage.{sh,ps1}` accept exactly: `install`, `update`, `uninstall`. There is
 no `upgrade` alias. They default to `https://releases.sidecar.perish.uk` as the
 public release asset root, and `SIDECAR_RELEASES_PUBLIC_URL` / `--public-url`
-override it. The root managers are stable-owned. The CLI's `sidecar update`
-subcommand downloads that root manager only for a canonical stable default-seat
-install; it never follows a non-stable channel manager.
+override it. The root managers are stable-owned.
 
 ## Repo-local Isolation
 
@@ -197,7 +175,7 @@ initialization wrapper; the Git hooks are Plumb's, projected by
 ### Branch Names
 
 Use `<area>/<kebab-case-slug>`, where `<area>` matches the touched crate or
-concern: `cli/update-command`, `core/process-discovery`, `docs/install-readme`.
+concern: `cli/reset-command`, `core/process-discovery`, `docs/install-readme`.
 
 ### Commit Messages
 

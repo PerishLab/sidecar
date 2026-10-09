@@ -1,8 +1,5 @@
 use std::env;
-use std::fs;
 use std::path::{Path, PathBuf};
-
-pub const AUTHORITY: &str = "https://releases.sidecar.perish.uk";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Paths {
@@ -46,29 +43,6 @@ pub fn home(explicit: Option<&Path>) -> PathBuf {
         return PathBuf::from(value);
     }
     fallback()
-}
-
-pub fn canonical(value: &str) -> bool {
-    value.trim_end_matches('/') == AUTHORITY
-}
-
-pub fn installed() -> bool {
-    let Ok(executable) = env::current_exe() else {
-        return false;
-    };
-    if cfg!(windows) {
-        let Some(profile) = env::var_os("USERPROFILE").or_else(|| env::var_os("HOME")) else {
-            return false;
-        };
-        let expected = PathBuf::from(profile).join(".local/bin/sidecar.exe");
-        return fs::canonicalize(expected).is_ok_and(|path| path == executable);
-    }
-    let Some(home) = env::var_os("HOME") else {
-        return false;
-    };
-    let root = PathBuf::from(home).join(".local/share/sidecar");
-    let root = fs::canonicalize(&root).unwrap_or(root);
-    executable.starts_with(root)
 }
 
 fn fallback() -> PathBuf {
