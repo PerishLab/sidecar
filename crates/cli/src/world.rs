@@ -1,9 +1,24 @@
+mod observation;
+
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::io::IsTerminal;
 
 fn main() {
-    let world = serde_json::json!({
+    let observer = observation::Run::start(sidecar_core::paths::home(None), "world");
+    let world = capture(observer.as_ref());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&world).unwrap_or_default()
+    );
+    if let Some(observer) = observer {
+        observer.finish(0);
+    }
+}
+
+#[locus::trace(with = observer.map(observation::Run::view))]
+fn capture(observer: Option<&observation::Run>) -> Value {
+    serde_json::json!({
         "argv": argv(),
         "env": env(),
         "cwd": cwd(),
@@ -11,11 +26,7 @@ fn main() {
         "ppid": parent(),
         "pgid": group(),
         "tty": tty(),
-    });
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&world).unwrap_or_default()
-    );
+    })
 }
 
 fn argv() -> Vec<String> {

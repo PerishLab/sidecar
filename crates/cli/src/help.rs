@@ -51,6 +51,15 @@ Safety:
 Exit shape:
   0 on success. 1 on config, diagnostic, lifecycle, or inspect failure.
 
+Locus observation:
+  Disabled by default. Set [locus] enabled = true in <data-home>/config.toml.
+  Control commands keep the existing --data-home > SIDECAR_DATA_HOME > platform
+  default precedence. The unpublished world probe uses the existing environment
+  and platform home. Buffered records use <data-home>/state/locus.
+  endpoint in [locus] overrides LOCUS_API, then http://127.0.0.1:43308.
+  Observation failures preserve command results. Runtime host/serve retain their
+  existing continuous-runtime boundaries and do not initialize observation.
+
 Project:
   Source:  https://github.com/PerishLab/sidecar
   Issues:  https://github.com/PerishLab/sidecar/issues

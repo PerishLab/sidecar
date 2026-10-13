@@ -2,6 +2,7 @@ mod args;
 mod cli;
 mod commands;
 mod help;
+mod observation;
 mod output;
 
 #[doc(hidden)]
