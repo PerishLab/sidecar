@@ -120,6 +120,41 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
     };
     let global = &cli.global;
 
+    let observer = name(&verb).and_then(|command| {
+        crate::observation::Run::start(
+            sidecar_core::paths::home(global.home.as_deref().map(std::path::Path::new)),
+            command,
+        )
+    });
+    let result = execute(global, verb, observer.as_ref());
+    if let Some(observer) = observer {
+        observer.finish(i32::from(result.is_err()));
+    }
+    result
+}
+
+fn name(verb: &Verb) -> Option<&'static str> {
+    match verb {
+        Verb::Doctor => Some("doctor"),
+        Verb::Plan => Some("plan"),
+        Verb::Inspect { .. } => Some("inspect"),
+        Verb::Start { .. } => Some("start"),
+        Verb::Restart { .. } => Some("restart"),
+        Verb::Stop { .. } => Some("stop"),
+        Verb::Status => Some("status"),
+        Verb::Logs { .. } => Some("logs"),
+        Verb::List => Some("list"),
+        Verb::Reset => Some("reset"),
+        Verb::Runtime { .. } | Verb::Help | Verb::Version => None,
+    }
+}
+
+#[locus::trace(with = observer.map(crate::observation::Run::view))]
+fn execute(
+    global: &Global,
+    verb: Verb,
+    observer: Option<&crate::observation::Run>,
+) -> Result<(), String> {
     match verb {
         Verb::Help => {
             println!("{}", help());

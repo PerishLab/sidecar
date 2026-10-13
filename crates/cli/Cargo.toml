@@ -21,8 +21,13 @@ path = "src/world.rs"
 plumb = { workspace = true }
 clap = { workspace = true }
 serde_json.workspace = true
+serde.workspace = true
+locus = { version = "0", registry = "perish" }
 sidecar-core.workspace = true
 ureq.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }

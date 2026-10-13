@@ -34,8 +34,10 @@ note = "The pnpm workspace anchors."
 name = ["DESIGN.md"]
 note = "Broker topology, the grant contract and authority boundaries."
 
+[identity]
+ns = "sidecar"
+
 [release]
-product = "sidecar"
 authority = "https://releases.sidecar.perish.uk"
 binaries = ["sidecar"]
 targets = [
