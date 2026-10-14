@@ -211,10 +211,10 @@ pub fn stop(pid: u32) -> Result<(), String> {
 pub fn exists(pid: u32) -> bool {
     #[cfg(unix)]
     {
-        if unsafe { libc::kill(pid as libc::pid_t, 0) } == 0 {
-            return true;
-        }
-        std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+        let signalable = unsafe { libc::kill(pid as libc::pid_t, 0) } == 0
+            || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM);
+        let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap_or_default();
+        signalable && !zombie(&stat)
     }
 
     #[cfg(windows)]
@@ -242,6 +242,12 @@ pub fn exists(pid: u32) -> bool {
         let _ = pid;
         false
     }
+}
+
+#[cfg(unix)]
+fn zombie(stat: &str) -> bool {
+    stat.rsplit_once(')')
+        .is_some_and(|(_, rest)| rest.trim_start().starts_with(['Z', 'X']))
 }
 
 #[cfg(unix)]

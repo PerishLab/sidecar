@@ -80,3 +80,35 @@ fn gone() {
     child.wait().expect("child should exit");
     assert!(process::stop(pid).is_ok());
 }
+
+#[cfg(unix)]
+#[test]
+fn running() {
+    let mut child = std::process::Command::new("sleep")
+        .arg("30")
+        .spawn()
+        .expect("child should spawn");
+    let pid = child.id();
+    assert!(process::exists(pid));
+    child.kill().expect("child should be killed");
+    child.wait().expect("child should be reaped");
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn zombie() {
+    let mut child = std::process::Command::new("sh")
+        .args(["-c", "exit 0"])
+        .spawn()
+        .expect("child should spawn");
+    let pid = child.id();
+    let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
+    let flags = libc::WEXITED | libc::WNOWAIT;
+    assert_eq!(
+        unsafe { libc::waitid(libc::P_PID, pid, &mut info, flags) },
+        0
+    );
+    assert_eq!(unsafe { libc::kill(pid as libc::pid_t, 0) }, 0);
+    assert!(!process::exists(pid));
+    child.wait().expect("child should be reaped");
+}
