@@ -121,7 +121,7 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
     let global = &cli.global;
 
     let observer = name(&verb).and_then(|command| {
-        crate::observation::Run::start(
+        crate::observation::start(
             sidecar_core::paths::home(global.home.as_deref().map(std::path::Path::new)),
             command,
         )
@@ -149,11 +149,11 @@ fn name(verb: &Verb) -> Option<&'static str> {
     }
 }
 
-#[locus::trace(with = observer.map(crate::observation::Run::view))]
+#[locus::trace(with = observer.map(plumb::observation::Run::view))]
 fn execute(
     global: &Global,
     verb: Verb,
-    observer: Option<&crate::observation::Run>,
+    observer: Option<&plumb::observation::Run>,
 ) -> Result<(), String> {
     match verb {
         Verb::Help => {
