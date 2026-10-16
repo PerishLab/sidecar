@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::io::IsTerminal;
 
 fn main() {
-    let observer = observation::Run::start(sidecar_core::paths::home(None), "world");
+    let observer = observation::start(sidecar_core::paths::home(None), "world");
     let world = capture(observer.as_ref());
     println!(
         "{}",
@@ -16,8 +16,8 @@ fn main() {
     }
 }
 
-#[locus::trace(with = observer.map(observation::Run::view))]
-fn capture(observer: Option<&observation::Run>) -> Value {
+#[locus::trace(with = observer.map(plumb::observation::Run::view))]
+fn capture(observer: Option<&plumb::observation::Run>) -> Value {
     serde_json::json!({
         "argv": argv(),
         "env": env(),

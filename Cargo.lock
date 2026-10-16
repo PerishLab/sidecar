@@ -360,6 +360,7 @@ checksum = "39e316af175c951c7219e50db241aa3e1e377cf6dbd484e5bc0ec4ca478de85e"
 dependencies = [
  "base64 0.22.1",
  "clap",
+ "locus",
  "object",
  "pin-project-lite",
  "plumb-macro",
@@ -529,7 +530,6 @@ dependencies = [
  "libc",
  "locus",
  "plumb",
- "serde",
  "serde_json",
  "tempfile",
  "ureq",

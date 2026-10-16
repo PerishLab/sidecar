@@ -172,6 +172,12 @@ fn isolated() {
             .iter()
             .any(|atom| atom["payload"]["event"] == "cli.finish" && atom["payload"]["code"] == 1)
     );
+    assert!(
+        broken
+            .records()
+            .iter()
+            .all(|atom| atom["context"].get("sidecar.fault").is_none())
+    );
 }
 
 #[test]
