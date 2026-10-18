@@ -191,7 +191,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -286,9 +286,9 @@ checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
 
 [[package]]
 name = "locus"
-version = "0.11.0"
+version = "0.13.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "e65f745d304cf123e5c18e4ca242611a2ac953ff80baf85d26078a27d4bc4873"
+checksum = "40666deea22d6694c5632a6b75cbdd9236f1962a3857fafd3a0625d8129284b2"
 dependencies = [
  "getrandom",
  "locus-macro",
@@ -298,9 +298,9 @@ dependencies = [
 
 [[package]]
 name = "locus-macro"
-version = "0.11.0"
+version = "0.13.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "e459c29c2b6f9a88d5b3cf2bd89f29d85846194934b04fd55325c88a7d674a01"
+checksum = "751074fb31f12465a949fa60734ddaac9ce57dc9a45a04dc0695136685f8b8eb"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -354,9 +354,9 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "plumb"
-version = "0.102.1"
+version = "0.103.5"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "39e316af175c951c7219e50db241aa3e1e377cf6dbd484e5bc0ec4ca478de85e"
+checksum = "7936440e56ceb1a68b248d06df1ab3a7903efb340d31a409bb1cdce0be30e5a4"
 dependencies = [
  "base64 0.22.1",
  "clap",
@@ -377,9 +377,9 @@ dependencies = [
 
 [[package]]
 name = "plumb-macro"
-version = "0.102.1"
+version = "0.103.5"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "2113eadae8bea813957be9386e7f9628e6b1dff6a4820eaf329c7f418edbf13b"
+checksum = "bfc3637c419f8c9a5ff185468a8c8a3becaa76dd87f9104d7144d14afa998e3b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -421,7 +421,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -573,7 +573,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
