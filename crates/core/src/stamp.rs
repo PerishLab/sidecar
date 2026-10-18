@@ -120,14 +120,7 @@ pub(crate) mod percent {
         while index < bytes.len() {
             match bytes[index] {
                 b'%' => {
-                    let Some(high) = bytes.get(index + 1).and_then(|byte| hex::decode(*byte))
-                    else {
-                        return Err("stamp value contains invalid percent escape".to_string());
-                    };
-                    let Some(low) = bytes.get(index + 2).and_then(|byte| hex::decode(*byte)) else {
-                        return Err("stamp value contains invalid percent escape".to_string());
-                    };
-                    decoded.push((high << 4) | low);
+                    decoded.push(escape(bytes, index)?);
                     index += 3;
                 }
                 byte => {
@@ -137,6 +130,18 @@ pub(crate) mod percent {
             }
         }
         String::from_utf8(decoded).map_err(|_| "stamp value is not valid UTF-8".to_string())
+    }
+
+    fn escape(bytes: &[u8], index: usize) -> Result<u8, String> {
+        let digit = |offset: usize| {
+            bytes
+                .get(index + offset)
+                .and_then(|byte| hex::decode(*byte))
+        };
+        match (digit(1), digit(2)) {
+            (Some(high), Some(low)) => Ok((high << 4) | low),
+            _ => Err("stamp value contains invalid percent escape".to_string()),
+        }
     }
 
     fn unreserved(byte: u8) -> bool {
