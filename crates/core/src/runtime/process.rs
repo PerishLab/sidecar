@@ -111,7 +111,7 @@ fn snapshot() -> Result<Vec<(u32, String)>, String> {
 fn snapshot() -> Result<Vec<(u32, String)>, String> {
     use std::os::windows::process::CommandExt;
 
-    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    const HIDDEN: u32 = 0x0800_0000;
     const QUERY: &str = concat!(
         "$ErrorActionPreference='Stop';",
         "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);",
@@ -126,7 +126,7 @@ fn snapshot() -> Result<Vec<(u32, String)>, String> {
             "-Command",
             QUERY,
         ])
-        .creation_flags(CREATE_NO_WINDOW)
+        .creation_flags(HIDDEN)
         .output()
         .map_err(|err| format!("PowerShell process query failed: {err}"))?;
     if !output.status.success() {
