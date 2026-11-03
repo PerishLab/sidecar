@@ -30,7 +30,7 @@ impl Paths {
 
 fn spot(value: &str, namespace: &str) -> Result<String, String> {
     let vars = std::collections::BTreeMap::from([("namespace", namespace.to_string())]);
-    plumb::fill::fill(value, &vars).map_err(|err| format!("project.data template: {err}"))
+    radicula_template::fill(value, &vars).map_err(|err| format!("project.data template: {err}"))
 }
 
 pub fn home(explicit: Option<&Path>) -> PathBuf {
