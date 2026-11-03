@@ -45,7 +45,7 @@ impl Grants {
             .iter()
             .map(|(term, value)| (term.as_str(), value.clone()))
             .collect();
-        plumb::fill::fill(template, &vars).map_err(|err| format!("`{name}`: {err}"))
+        radicula_template::fill(template, &vars).map_err(|err| format!("`{name}`: {err}"))
     }
 
     pub(super) fn record(&self) -> Value {
