@@ -55,8 +55,11 @@ Locus observation:
   Disabled by default. Set [locus] enabled = true in <data-home>/config.toml.
   Control commands keep the existing --data-home > SIDECAR_DATA_HOME > platform
   default precedence. The unpublished world probe uses the existing environment
-  and platform home. Buffered records use <data-home>/state/locus.
-  endpoint in [locus] overrides LOCUS_API, then http://127.0.0.1:43308.
+  and platform home. HTTP defaults to http://127.0.0.1:43308 and uses
+  <data-home>/state/locus. For HTTPS, set endpoint and an absolute writer
+  key_file in [locus]. The recovery queue is <data-home>/state/locus.https/sidecar.
+  On Unix, sender can name an absolute Locus executable. With all three unset,
+  LOCUS_API, LOCUS_API_KEY_FILE and LOCUS_SENDER supply the settings.
   Observation failures preserve command results. Runtime host/serve retain their
   existing continuous-runtime boundaries and do not initialize observation.
 
