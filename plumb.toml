@@ -59,3 +59,21 @@ target-seal = "fc55db291362b445f12aae5c4bac5fed6833b14cb95b938229aaf7a92f62adc0"
 strategy = "design"
 source = [{ path = ".", seal = "5c65e0ec5354066c71a7dce1cb2fe8f9f77f3652903c0552cf17878faebe553f" }]
 target-seal = "e8087399a070ef877a7d5f12a3a44575b9b7ff62e07c454966c164803b838e90"
+
+[[ectropy.grant]]
+paths = [
+    "crates/cli/src/args.rs",
+    "crates/cli/src/commands.rs",
+    "crates/cli/src/commands/runtime.rs",
+    "crates/cli/src/main.rs",
+    "crates/cli/src/update.rs",
+    "crates/cli/src/world.rs",
+    "crates/core/src/paths.rs",
+    "packages/*/src/lib.ts",
+]
+syntax = "environment"
+
+[runseal.env.vars]
+SIDECAR_REPO_LOCAL_DIR = "local://"
+SIDECAR_REPO_SECRETS_DIR = "local://secrets"
+SIDECAR_REPO_TMP_DIR = "local://tmp"
