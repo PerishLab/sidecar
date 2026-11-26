@@ -22,7 +22,7 @@ Commands:
 
 Global flags:
   --config <path>       explicit manifest path; when omitted, sidecar walks
-                        ancestors of cwd for sidecar.toml
+                        ancestors of cwd for plumb.toml [sidecar] or sidecar.toml
   -p, --project <name>  override [project].namespace, like docker compose -p
   --data-home <path>    override global state root
   --format text|json    output format where the command supports it

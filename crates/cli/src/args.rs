@@ -74,13 +74,17 @@ pub(crate) fn locate(explicit: Option<&str>) -> Result<(PathBuf, bool), String> 
     }
 
     let cwd = std::env::current_dir().map_err(|error| format!("failed to read cwd: {error}"))?;
+    discover(&cwd)
+}
+
+fn discover(cwd: &Path) -> Result<(PathBuf, bool), String> {
     let mut searched = Vec::new();
     for dir in cwd.ancestors() {
-        let candidate = dir.join(crate::cli::default::MANIFEST);
-        if candidate.is_file() {
-            return Ok((candidate, true));
+        if let Some(found) = check(dir)? {
+            return Ok((found, true));
         }
-        searched.push(candidate);
+        searched.push(dir.join(crate::cli::default::PLUMB));
+        searched.push(dir.join(crate::cli::default::MANIFEST));
     }
 
     let searched = searched
@@ -89,9 +93,27 @@ pub(crate) fn locate(explicit: Option<&str>) -> Result<(PathBuf, bool), String> 
         .collect::<Vec<_>>()
         .join("\n");
     Err(format!(
-        "no sidecar config found from {} upward.\nHint: create sidecar.toml here or pass --config <path>.\nSearched:\n{searched}",
+        "no sidecar config found from {} upward.\nHint: add [sidecar] to plumb.toml, create sidecar.toml here, or pass --config <path>.\nSearched:\n{searched}",
         cwd.display()
     ))
+}
+
+fn check(dir: &Path) -> Result<Option<PathBuf>, String> {
+    let plumb = dir.join(crate::cli::default::PLUMB);
+    let legacy = dir.join(crate::cli::default::MANIFEST);
+    let embedded = plumb.is_file() && State::probe(&plumb).map_err(|error| error.to_string())?;
+    let solo = legacy.is_file();
+    match (embedded, solo) {
+        (true, true) => Err(format!(
+            "both {} and {} define sidecar config in {}; remove one or pass --config <path>",
+            plumb.display(),
+            legacy.display(),
+            dir.display()
+        )),
+        (true, false) => Ok(Some(plumb)),
+        (false, true) => Ok(Some(legacy)),
+        (false, false) => Ok(None),
+    }
 }
 
 fn seconds(value: &str) -> Result<u64, String> {
@@ -218,6 +240,11 @@ pub mod __test {
 
     pub fn locate(explicit: Option<&str>) -> Result<(String, bool), String> {
         let (path, discovered) = super::locate(explicit)?;
+        Ok((path.display().to_string(), discovered))
+    }
+
+    pub fn discover(cwd: &std::path::Path) -> Result<(String, bool), String> {
+        let (path, discovered) = super::discover(cwd)?;
         Ok((path.display().to_string(), discovered))
     }
 }

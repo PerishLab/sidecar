@@ -1,4 +1,4 @@
-use crate::config::Manifest;
+use crate::config::{self, Manifest};
 use crate::diagnostics::Diagnostic;
 use crate::plan::Plan;
 use std::collections::HashSet;
@@ -22,20 +22,30 @@ pub enum Error {
         path: PathBuf,
         source: Box<toml::de::Error>,
     },
+    Section {
+        path: PathBuf,
+        why: String,
+    },
 }
 
 impl State {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, Error> {
         let path = path.as_ref().to_path_buf();
-        let text = fs::read_to_string(&path).map_err(|source| Error::Read {
-            path: path.clone(),
-            source,
-        })?;
-        let config = toml::from_str(&text).map_err(|source| Error::Parse {
-            path: path.clone(),
-            source: Box::new(source),
-        })?;
+        let config = if embedded(&path) {
+            section(&path)?
+        } else {
+            whole(&path)?
+        };
         Ok(Self { path, config })
+    }
+
+    pub fn probe(path: impl AsRef<Path>) -> Result<bool, Error> {
+        let path = path.as_ref();
+        match radicula_config::section::<toml::Table>(path, config::SECTION) {
+            Ok(Some(_)) => Ok(true),
+            Ok(None) => Ok(false),
+            Err(error) => Err(convert(path.to_path_buf(), error)),
+        }
     }
 
     pub fn diagnostics(&self) -> Vec<Diagnostic> {
@@ -90,6 +100,55 @@ impl State {
     }
 }
 
+fn embedded(path: &Path) -> bool {
+    path.file_name().is_some_and(|name| {
+        if cfg!(windows) {
+            name.to_str()
+                .is_some_and(|value| value.eq_ignore_ascii_case(config::PLUMB))
+        } else {
+            name == config::PLUMB
+        }
+    })
+}
+
+fn whole(path: &Path) -> Result<Manifest, Error> {
+    let text = fs::read_to_string(path).map_err(|source| Error::Read {
+        path: path.to_path_buf(),
+        source,
+    })?;
+    toml::from_str(&text).map_err(|source| Error::Parse {
+        path: path.to_path_buf(),
+        source: Box::new(source),
+    })
+}
+
+fn section(path: &Path) -> Result<Manifest, Error> {
+    fs::metadata(path).map_err(|source| Error::Read {
+        path: path.to_path_buf(),
+        source,
+    })?;
+    match radicula_config::section(path, config::SECTION) {
+        Ok(Some(config)) => Ok(config),
+        Ok(None) => Err(Error::Section {
+            path: path.to_path_buf(),
+            why: format!("missing [{}] section", config::SECTION),
+        }),
+        Err(error) => Err(convert(path.to_path_buf(), error)),
+    }
+}
+
+fn convert(path: PathBuf, error: radicula_config::Error) -> Error {
+    match error {
+        radicula_config::Error::Read { path, source } => Error::Read { path, source },
+        radicula_config::Error::Parse { path, source } => Error::Parse {
+            path,
+            source: Box::new(source),
+        },
+        radicula_config::Error::Section { path, why, .. } => Error::Section { path, why },
+        radicula_config::Error::Env { why, .. } => Error::Section { path, why },
+    }
+}
+
 fn require(diagnostics: &mut Vec<Diagnostic>, path: impl Into<String>, value: &str) {
     if value.trim().is_empty() {
         diagnostics.push(Diagnostic::error(path, "value must not be empty"));
@@ -104,6 +163,14 @@ impl fmt::Display for Error {
             }
             Error::Parse { path, source } => {
                 write!(formatter, "failed to parse {}: {source}", path.display())
+            }
+            Error::Section { path, why } => {
+                write!(
+                    formatter,
+                    "failed to load [{}] from {}: {why}",
+                    config::SECTION,
+                    path.display()
+                )
             }
         }
     }

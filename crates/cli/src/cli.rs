@@ -6,7 +6,8 @@ use sidecar_core::Severity;
 use std::time::Duration;
 
 pub(crate) mod default {
-    pub(crate) const MANIFEST: &str = "sidecar.toml";
+    pub(crate) const MANIFEST: &str = sidecar_core::config::MANIFEST;
+    pub(crate) const PLUMB: &str = sidecar_core::config::PLUMB;
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

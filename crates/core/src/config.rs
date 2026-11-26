@@ -2,6 +2,10 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+pub const MANIFEST: &str = "sidecar.toml";
+pub const PLUMB: &str = "plumb.toml";
+pub const SECTION: &str = "sidecar";
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Manifest {
